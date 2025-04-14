@@ -1,0 +1,20 @@
+[
+  {
+    "color": "akita",
+    "type": "dog",
+    "size": "medium",
+    "name": "Rusty"
+  },
+  {
+    "color": "black",
+    "type": "cat",
+    "size": "medium",
+    "name": "sarab"
+  },
+  {
+    "color": "red",
+    "type": "fox",
+    "size": "medium",
+    "name": "Lucian"
+  }
+]

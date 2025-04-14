@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "846984349819",
+    "project_id": "the-help-loop",
+    "storage_bucket": "the-help-loop.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:846984349819:android:7e49aa51b6ef4a4e4efade",
+        "android_client_info": {
+          "package_name": "com.example.help_loop"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBrWcEZrGXZ0Tn4eXMrVSH2paZiGCrTaR0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
