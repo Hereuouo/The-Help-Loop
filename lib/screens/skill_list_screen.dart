@@ -2,9 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/skill.dart';
 import '../services/firestore_service.dart';
 import 'base_scaffold.dart'; 
-import 'font_styles.dart'; 
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 
 class SkillListScreen extends StatefulWidget {
   final Skill? skillToEdit; // will allow editing an existing skill

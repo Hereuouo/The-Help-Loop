@@ -3,7 +3,6 @@ import 'package:firebase_auth/firebase_auth.dart' as firebase_auth; // Alias for
 import '../models/skill.dart';
 import '../services/firestore_service.dart';
 import 'base_scaffold.dart'; 
-import 'font_styles.dart'; 
 import 'skill_list_screen.dart'; 
 
 class ProfileScreen extends StatefulWidget {

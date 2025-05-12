@@ -161,8 +161,8 @@ class _HomeScreenState extends State<HomeScreen> {
               isMenuOpen = !isMenuOpen; // Toggle menu
             });
           },
-          child: const Icon(Icons.more_vert),
           backgroundColor: Colors.blueAccent.withOpacity(0.9),
+          child: const Icon(Icons.more_vert),
         ),
       ),
     );

@@ -13,9 +13,9 @@ class EmailVerificationScreen extends StatefulWidget {
 
 class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
   final TextEditingController _codeController = TextEditingController();
-  String _verificationCode = '';
+  final String _verificationCode = '';
   bool _isCodeSent = false;
-  bool _isEmailVerified = false;
+  final bool _isEmailVerified = false;
 
   Future<void> _sendVerificationCode() async {
     try {

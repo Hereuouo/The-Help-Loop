@@ -1,42 +1,23 @@
 import 'package:firebase_core/firebase_core.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:help_loop/firebase_options.dart';
 
 //screens
 import 'screens/animated_logo_loading_screen.dart';
-import 'screens/Welcome_screen.dart';
-import 'screens/auth_wrapper.dart';
 import 'screens/login_screen.dart';
 import 'screens/registration_screen.dart';
-import 'screens/EmailVerificationScreen.dart'; 
 import 'screens/skill_list_screen.dart';
-import 'screens/home_screen.dart';
-import 'screens/profile_screen.dart';
 import 'screens/booking_screen.dart';
 import 'screens/tracking_screen.dart';
-import 'screens/font_styles.dart'; 
 
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  if (kIsWeb) {
-    await Firebase.initializeApp(
-      options: const FirebaseOptions(
-        apiKey: "AIzaSyCDMxQM7HtYnztO4qWsoVH_hMehvWSV5fU",
-        authDomain: "the-help-loop.firebaseapp.com",
-        projectId: "the-help-loop",
-        storageBucket: "the-help-loop.firebasestorage.app",
-        messagingSenderId: "846984349819",
-        appId: "1:846984349819:web:984c384731b73b1f4efade",
-        measurementId: "G-L9FDXW6MQR",
-      ),
-    );
-  } else {
-    await Firebase.initializeApp();
-  }
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform
+  );
 
   runApp(const MyApp());
 }
