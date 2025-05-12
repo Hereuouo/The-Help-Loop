@@ -1,109 +1,137 @@
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/material.dart';
-import 'base_scaffold.dart';
-import 'font_styles.dart';
-import 'home_screen.dart'; 
+import 'package:flutter/material.dart';  
+import 'package:firebase_auth/firebase_auth.dart';  
+import 'base_scaffold.dart'; 
+import 'font_styles.dart';  
+import 'home_screen.dart';   
+import 'dart:async';  // for timers  
 
-class EmailVerificationScreen extends StatefulWidget {
-  const EmailVerificationScreen({super.key});
+class EmailVerificationScreen extends StatefulWidget {  
+  const EmailVerificationScreen({super.key});  
 
-  @override
-  State<EmailVerificationScreen> createState() => _EmailVerificationScreenState();
-}
+  @override  
+  State<EmailVerificationScreen> createState() => _EmailVerificationScreenState();  
+}  
 
-class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
-  final TextEditingController _codeController = TextEditingController();
-  final String _verificationCode = '';
-  bool _isCodeSent = false;
-  final bool _isEmailVerified = false;
+class _EmailVerificationScreenState extends State<EmailVerificationScreen> {  
+  bool _isEmailSent = false;   
+  String _verificationMessage = "Verification email sent. Didn't receive it?";   
+  int _remainingSeconds = 20;   
+  bool _canResendEmail = false;   
+  Timer? _timer;   
+  Timer? _verificationTimer;   
 
-  Future<void> _sendVerificationCode() async {
-    try {
-      User? user = FirebaseAuth.instance.currentUser;
-      if (user != null && !user.emailVerified) {
-        // Send the verification code via email (Firebase handles this)
-        await user.sendEmailVerification();
-        setState(() {
-          _isCodeSent = true;
-        });
-      }
-    } catch (e) {
-      print("Error sending verification code: $e");
-    }
-  }
+  @override  
+  void initState() {  
+    super.initState();  
+    _sendVerificationEmail();   
+    _startCountdown();   
+    _startVerificationCheck();   
+  }  
 
-  Future<void> _verifyCode() async {
-    // Check if email is verified
-    User? user = FirebaseAuth.instance.currentUser;
-    if (user != null && user.emailVerified) {
-      // If the email is verified, navigate to the Home Screen
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const HomeScreen()), // Navigate to HomeScreen
-      );
-    } else {
-      // Handle error if verification fails
-      print("Verification failed or email not verified.");
-    }
-  }
+  Future<void> _sendVerificationEmail() async {  
+    User? user = FirebaseAuth.instance.currentUser;   
+    if (user != null && !user.emailVerified) {  
+      try {  
+        await user.sendEmailVerification();   
+        setState(() {  
+          _isEmailSent = true;   
+          _canResendEmail = false;   
+        });  
+      } catch (e) {  
+        print("Error sending verification email: $e");  
+      }  
+    }  
+  }  
 
-  @override
-  void initState() {
-    super.initState();
-    _sendVerificationCode();
-  }
+  void _startCountdown() {  
+    _remainingSeconds = 20;   
+    _canResendEmail = false;   
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {  
+      if (_remainingSeconds > 0) {  
+        setState(() {  
+          _remainingSeconds--;   
+        });  
+      } else {  
+        setState(() {  
+          _canResendEmail = true;   
+        });  
+        _timer?.cancel();   
+      }  
+    });  
+  }  
 
-  @override
-  Widget build(BuildContext context) {
-    return BaseScaffold(
-      child: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                "Verify your email",
-                style: FontStyles.heading(context, fontSize: 32, color: Colors.white),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 32),
-              _isCodeSent
-                  ? Column(
-                      children: [
-                        TextField(
-                          controller: _codeController,
-                          style: FontStyles.body(context, color: Colors.white),
-                          decoration: InputDecoration(
-                            labelText: "Enter the verification code",
-                            labelStyle: FontStyles.body(context, color: Colors.white70),
-                            filled: true,
-                            fillColor: Colors.white12,
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                          ),
-                        ),
-                        const SizedBox(height: 24),
-                        ElevatedButton(
-                          onPressed: _verifyCode,
-                          style: ElevatedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            backgroundColor: Colors.blueAccent.withOpacity(0.9),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                          child: Text(
-                            "Verify",
-                            style: FontStyles.body(context, fontSize: 18, color: Colors.white),
-                          ),
-                        ),
-                      ],
-                    )
-                  : CircularProgressIndicator(color: Colors.white),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+  void _startVerificationCheck() {  
+    _verificationTimer = Timer.periodic(const Duration(seconds: 5), (timer) async {  
+      await _verifyEmail();   
+    });  
+  }  
+
+  Future<void> _verifyEmail() async {  
+    User? user = FirebaseAuth.instance.currentUser;   
+    await user?.reload();   
+    if (user != null && user.emailVerified) {  
+      Navigator.pushReplacement(  
+        context,  
+        MaterialPageRoute(builder: (context) => const HomeScreen()),   
+      );  
+    } else {  
+      setState(() {  
+        _verificationMessage = "Verification failed. Please try again.";   
+      });  
+    }  
+  }  
+
+  Future<void> _resendVerificationEmail() async {  
+    await _sendVerificationEmail();   
+    _startCountdown();   
+  }  
+
+  @override  
+  void dispose() {  
+    _timer?.cancel();   
+    _verificationTimer?.cancel();   
+    super.dispose();  
+  }  
+
+  @override  
+  Widget build(BuildContext context) {  
+    return BaseScaffold(  
+      child: Center(  
+        child: SingleChildScrollView(  
+          padding: const EdgeInsets.all(24),  
+          child: Column(  
+            crossAxisAlignment: CrossAxisAlignment.center,  
+            children: [  
+              Text(  
+                "Email Verification Sent",  
+                style: FontStyles.heading(context, fontSize: 32, color: Colors.white),  
+                textAlign: TextAlign.center,  
+              ),  
+              const SizedBox(height: 32),  
+              Text(  
+                _verificationMessage,  
+                style: FontStyles.body(context, color: Colors.white70),  
+                textAlign: TextAlign.center,  
+              ),  
+              const SizedBox(height: 24),  
+              GestureDetector(  
+                onTap: _canResendEmail ? _resendVerificationEmail : null,  
+                child: Text(  
+                  _canResendEmail  
+                      ? "Send again"   
+                      : "Resend email in $_remainingSeconds seconds.",  
+                  style: FontStyles.body(  
+                    context,  
+                    color: _canResendEmail ? Colors.white : Colors.grey,  
+                  ),  
+                  textAlign: TextAlign.center,  
+                ),  
+              ),  
+              const SizedBox(height: 12),  
+            ],  
+          ),  
+        ),  
+      ),  
+    );  
+  }  
 }
