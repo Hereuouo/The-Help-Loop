@@ -1,4 +1,3 @@
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class UserService {
@@ -25,4 +24,16 @@ class UserService {
       return "Error updating user trust score: $e";
     }
   }
+
+  Future<void> updateSkillsAndPaymentConsent(String userId, List<String> skills, bool consent) async {
+    try {
+      await FirebaseFirestore.instance.collection('users').doc(userId).update({
+        'skills': skills,
+        'willingToPay': consent,
+      });
+    } catch (e) {
+      throw Exception("Error saving skills or consent: $e");
+    }
+  }
+
 }
