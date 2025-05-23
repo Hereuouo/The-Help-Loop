@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'home_screen.dart';
-import 'profile_screen.dart';
 import 'base_scaffold.dart';
 import 'font_styles.dart';
 
@@ -37,22 +35,6 @@ class WelcomeScreen extends StatelessWidget {
                 label: "Register",
                 color: Colors.indigo,
                 onPressed: () => Navigator.pushNamed(context, '/register'),
-              ),
-              _buildButton(
-                context,
-                icon: Icons.home,
-                label: "Go to Home Screen",
-                color: Colors.green.shade700,
-                onPressed: () =>
-                    _checkLoginAndNavigate(context, const HomeScreen()),
-              ),
-              _buildButton(
-                context,
-                icon: Icons.person,
-                label: "Go to Profile Screen",
-                color: Colors.deepPurple,
-                onPressed: () =>
-                    _checkLoginAndNavigate(context, const ProfileScreen()),
               ),
             ],
           ),
