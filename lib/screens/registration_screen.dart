@@ -218,7 +218,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             placemarks.first.street,
                             placemarks.first.subAdministrativeArea,
                             placemarks.first.administrativeArea
-                          ].where((e) => e != null && e!.isNotEmpty).join(', ');
+                          ].where((e) => e != null && e.isNotEmpty).join(', ');
 
                           if (_pickedAddress.isEmpty) {
                             _pickedAddress = '${result.latitude}, ${result.longitude}';

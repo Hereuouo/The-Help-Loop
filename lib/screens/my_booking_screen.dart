@@ -99,8 +99,9 @@ class _MyBookingsTab extends StatelessWidget {
           .where('fromUserId', isEqualTo: currentUser!.uid)
           .snapshots(),
       builder: (context, snapshot) {
-        if (!snapshot.hasData)
+        if (!snapshot.hasData) {
           return const Center(child: CircularProgressIndicator());
+        }
 
         final bookings = snapshot.data!.docs.where((doc) {
           final docStatus = doc['status']?.toString().toLowerCase();

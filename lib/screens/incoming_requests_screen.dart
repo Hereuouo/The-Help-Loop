@@ -94,8 +94,9 @@ class _IncomingRequestsScreenState extends State<IncomingRequestsScreen>
           .where('toUserId', isEqualTo: currentUser!.uid)
           .snapshots(),
       builder: (context, snapshot) {
-        if (!snapshot.hasData)
+        if (!snapshot.hasData) {
           return const Center(child: CircularProgressIndicator());
+        }
 
         final bookings = snapshot.data!.docs.where((doc) {
           if (status == null) return true;

@@ -109,7 +109,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         placemarks.first.street,
         placemarks.first.locality,
         placemarks.first.administrativeArea,
-      ].where((e) => e != null && e!.isNotEmpty).join(', ');
+      ].where((e) => e != null && e.isNotEmpty).join(', ');
     } catch (_) {
       address = '${picked.latitude}, ${picked.longitude}';
     }
@@ -214,6 +214,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
         ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => Navigator.push(
+            context, MaterialPageRoute(builder: (_) => const AddSkillScreen())),
+        child: const Icon(Icons.add),
       ),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -323,11 +328,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ],
           ),
         ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => Navigator.push(
-            context, MaterialPageRoute(builder: (_) => const AddSkillScreen())),
-        child: const Icon(Icons.add),
       ),
     );
   }

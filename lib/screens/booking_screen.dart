@@ -172,7 +172,7 @@ class BookingScreen extends StatelessWidget {
                           placemarks.first.street,
                           placemarks.first.subAdministrativeArea,
                           placemarks.first.administrativeArea
-                        ].where((e) => e != null && e!.isNotEmpty).join(', ');
+                        ].where((e) => e != null && e.isNotEmpty).join(', ');
                       } catch (_) {
                         addressTxt = '${res.latitude},${res.longitude}';
                       }

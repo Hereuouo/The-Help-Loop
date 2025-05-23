@@ -3,7 +3,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:thehelploop/screens/post_verification_screen.dart';
 import 'base_scaffold.dart';
 import 'font_styles.dart';
-import 'home_screen.dart';
 import 'dart:async';
 
 class EmailVerificationScreen extends StatefulWidget {
