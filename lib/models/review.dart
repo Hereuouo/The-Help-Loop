@@ -5,6 +5,7 @@ class TrustReview {
   final int rating;
   final String comment;
   final DateTime createdAt;
+  final String? bookingId;
 
   TrustReview({
     required this.id,
@@ -13,6 +14,7 @@ class TrustReview {
     required this.rating,
     required this.comment,
     required this.createdAt,
+    this.bookingId
   });
 
   Map<String, dynamic> toMap() {
@@ -23,6 +25,7 @@ class TrustReview {
       'rating': rating,
       'comment': comment,
       'createdAt': createdAt,
+      'bookingId': bookingId,
     };
   }
 

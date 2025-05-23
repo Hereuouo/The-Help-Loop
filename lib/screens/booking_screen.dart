@@ -36,7 +36,7 @@ class BookingScreen extends StatelessWidget {
         final skills = data['skills'] ?? [];
 
         return BaseScaffold(
-          title: 'User Skills Details',
+          title: 'Booking Skill Details',
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(24),
             child: Column(
@@ -63,25 +63,28 @@ class BookingScreen extends StatelessWidget {
                   children: skills
                       .map<Widget>(
                         (s) => Chip(
-                      label: Text(s.toString()),
-                      backgroundColor: Colors.white,
-                      labelStyle:
-                      FontStyles.body(context, color: Colors.black),
-                    ),
-                  )
+                          label: Text(s.toString()),
+                          backgroundColor: Colors.white,
+                          labelStyle:
+                              FontStyles.body(context, color: Colors.black),
+                        ),
+                      )
                       .toList(),
                 ),
                 const SizedBox(height: 40),
                 Center(
                   child: CustomElevatedButton(
-                    icon: Icons.calendar_today_outlined,
-                    label: 'Book Service',
-                    onPressed: () => _showBookingDialog(
-                      context: context,
-                      toUserId: userId,
-                      requestedSkill: requestedSkill ?? '',
-                    ),
-                  ),
+                      icon: Icons.calendar_today_outlined,
+                      label: 'Book Service',
+                      onPressed: () => _showBookingDialog(
+                            context: context,
+                            toUserId: userId,
+                            requestedSkill: requestedSkill ?? '',
+                          ),
+                      style: FontStyles.body(context,
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18)),
                 ),
               ],
             ),
@@ -122,7 +125,7 @@ class BookingScreen extends StatelessWidget {
                         ? 'Choose start date'
                         : '${chosenDate!.toLocal()}'.split(' ')[0],
                     style:
-                    FontStyles.body(context, color: Colors.teal.shade900),
+                        FontStyles.body(context, color: Colors.teal.shade900),
                   ),
                   trailing: const Icon(Icons.calendar_month),
                   onTap: () async {
@@ -137,22 +140,23 @@ class BookingScreen extends StatelessWidget {
                   },
                 ),
                 DropdownButtonFormField<String>(
-                  decoration: const InputDecoration(
-                    labelText: 'Duration',
-                    labelStyle: TextStyle(fontSize: 19),
-                  ),
-                  value: duration,
-                  items: const [
-                    DropdownMenuItem(value: 'Day', child: Text('Day')),
-                    DropdownMenuItem(value: '2 Days', child: Text('2 Days')),
-                    DropdownMenuItem(value: 'Week', child: Text('Week')),
-                    DropdownMenuItem(value: 'Month', child: Text('Month')),
-                  ],
-                  onChanged: (v) => duration = v ?? 'Day',
-                ),
+                    decoration: const InputDecoration(
+                      labelText: 'Duration',
+                      labelStyle: TextStyle(fontSize: 19),
+                    ),
+                    value: duration,
+                    items: const [
+                      DropdownMenuItem(value: 'Day', child: Text('Day')),
+                      DropdownMenuItem(value: '2 Days', child: Text('2 Days')),
+                      DropdownMenuItem(value: 'Week', child: Text('Week')),
+                      DropdownMenuItem(value: 'Month', child: Text('Month')),
+                    ],
+                    onChanged: (v) => duration = v ?? 'Day',
+                    style: FontStyles.heading(context,
+                        fontSize: 16, color: Colors.teal.shade900)),
                 ListTile(
                   title:
-                  Text(pickedLoc == null ? 'Choose location' : addressTxt),
+                      Text(pickedLoc == null ? 'Choose location' : addressTxt),
                   trailing: const Icon(Icons.location_on),
                   onTap: () async {
                     final LatLng? res = await showDialog(
@@ -168,7 +172,7 @@ class BookingScreen extends StatelessWidget {
                           placemarks.first.street,
                           placemarks.first.subAdministrativeArea,
                           placemarks.first.administrativeArea
-                        ].where((e) => e != null && e.isNotEmpty).join(', ');
+                        ].where((e) => e != null && e!.isNotEmpty).join(', ');
                       } catch (_) {
                         addressTxt = '${res.latitude},${res.longitude}';
                       }
@@ -179,7 +183,7 @@ class BookingScreen extends StatelessWidget {
                 TextField(
                   controller: notesCtrl,
                   decoration:
-                  const InputDecoration(labelText: 'Notes (optional)'),
+                      const InputDecoration(labelText: 'Notes (optional)'),
                   maxLines: 2,
                 ),
               ],
@@ -204,8 +208,9 @@ class BookingScreen extends StatelessWidget {
             ),
             onPressed: () async {
               if (chosenDate == null || pickedLoc == null) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Complete all fields')));
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                    content: Text('Complete all fields please',
+                        style: FontStyles.body(context, color: Colors.white))));
                 return;
               }
               await _createBooking(
@@ -238,8 +243,9 @@ class BookingScreen extends StatelessWidget {
   }) async {
     final current = FirebaseAuth.instance.currentUser;
     if (current == null) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('You must login first.')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('You must login first.',
+              style: FontStyles.body(context, color: Colors.white))));
       return;
     }
 
@@ -249,8 +255,9 @@ class BookingScreen extends StatelessWidget {
         .get();
     final toGeo = providerDoc.data()?['location'];
     if (toGeo == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Provider location unavailable.')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Provider location unavailable.',
+              style: FontStyles.body(context, color: Colors.white))));
       return;
     }
 
@@ -278,8 +285,9 @@ class BookingScreen extends StatelessWidget {
       await FirebaseFirestore.instance
           .collection('bookings')
           .add(booking.toMap());
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Booking sent ✅')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Booking sent ✅',
+              style: FontStyles.body(context, color: Colors.white))));
       Navigator.pop(context);
     } catch (e) {
       ScaffoldMessenger.of(context)

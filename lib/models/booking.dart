@@ -1,6 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-/// models/booking_request.dart
 class BookingRequest {
   final String fromUserId;
   final String toUserId;
@@ -29,16 +28,16 @@ class BookingRequest {
   }) : timestamp = timestamp ?? DateTime.now();
 
   Map<String, dynamic> toMap() => {
-    'fromUserId': fromUserId,
-    'toUserId': toUserId,
-    'requestedSkill': requestedSkill,
-    'startDate': startDate,
-    'duration': duration,
-    'notes': notes,
-    'fromLocation': fromLocation,
-    'fromAddress': fromAddress,
-    'distanceKm': distanceKm,
-    'status': status,
-    'timestamp': timestamp,
-  };
+        'fromUserId': fromUserId,
+        'toUserId': toUserId,
+        'requestedSkill': requestedSkill,
+        'startDate': startDate,
+        'duration': duration,
+        'notes': notes,
+        'fromLocation': fromLocation,
+        'fromAddress': fromAddress,
+        'distanceKm': distanceKm,
+        'status': status,
+        'timestamp': timestamp,
+      };
 }

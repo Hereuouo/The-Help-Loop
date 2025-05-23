@@ -9,6 +9,7 @@ import 'package:thehelploop/screens/base_scaffold.dart';
 
 class TrackingMapScreen extends StatefulWidget {
   final LatLng userLocation;
+
   const TrackingMapScreen({super.key, required this.userLocation});
 
   @override
@@ -74,9 +75,8 @@ class _TrackingMapScreenState extends State<TrackingMapScreen> {
       final encoded = response.routes.first.overviewPolyline.points;
 
       final decodedPoints = PolylinePoints().decodePolyline(encoded);
-      polylineCoordinates = decodedPoints
-          .map((e) => LatLng(e.latitude, e.longitude))
-          .toList();
+      polylineCoordinates =
+          decodedPoints.map((e) => LatLng(e.latitude, e.longitude)).toList();
 
       final leg = response.routes.first.legs.first;
       final distanceInMeters = leg.distance.value;
@@ -87,7 +87,8 @@ class _TrackingMapScreenState extends State<TrackingMapScreen> {
       });
     } else {
       setState(() {
-        _errorMessage = 'No route found: ${response.errorMessage ?? response.status}';
+        _errorMessage =
+            'No route found: ${response.errorMessage ?? response.status}';
       });
     }
   }
@@ -102,62 +103,62 @@ class _TrackingMapScreenState extends State<TrackingMapScreen> {
       child: destination == null
           ? const Center(child: CircularProgressIndicator())
           : Stack(
-        children: [
-          GoogleMap(
-            initialCameraPosition:
-            CameraPosition(target: origin, zoom: 13),
-            onMapCreated: (controller) => _mapController = controller,
-            markers: {
-              Marker(
-                markerId: const MarkerId('origin'),
-                position: origin,
-                infoWindow: const InfoWindow(title: 'Sender'),
-              ),
-              Marker(
-                markerId: const MarkerId('destination'),
-                position: destination,
-                infoWindow: const InfoWindow(title: 'You'),
-              ),
-            },
-            polylines: {
-              Polyline(
-                polylineId: const PolylineId('route'),
-                color: Colors.blue,
-                width: 5,
-                points: polylineCoordinates,
-              ),
-            },
-          ),
-          Positioned(
-            top: 10,
-            left: 10,
-            right: 10,
-            child: Container(
-              padding: const EdgeInsets.all(8),
-              color: Colors.white.withOpacity(0.9),
-              child: _errorMessage.isNotEmpty
-                  ? Text(
-                _errorMessage,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.red,
+              children: [
+                GoogleMap(
+                  initialCameraPosition:
+                      CameraPosition(target: origin, zoom: 13),
+                  onMapCreated: (controller) => _mapController = controller,
+                  markers: {
+                    Marker(
+                      markerId: const MarkerId('origin'),
+                      position: origin,
+                      infoWindow: const InfoWindow(title: 'Sender'),
+                    ),
+                    Marker(
+                      markerId: const MarkerId('destination'),
+                      position: destination,
+                      infoWindow: const InfoWindow(title: 'You'),
+                    ),
+                  },
+                  polylines: {
+                    Polyline(
+                      polylineId: const PolylineId('route'),
+                      color: Colors.blue,
+                      width: 5,
+                      points: polylineCoordinates,
+                    ),
+                  },
                 ),
-                textAlign: TextAlign.center,
-              )
-                  : Text(
-                'Distance: ${_distanceInKm.toStringAsFixed(2)} km',
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black,
+                Positioned(
+                  top: 10,
+                  left: 10,
+                  right: 10,
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    color: Colors.white.withOpacity(0.9),
+                    child: _errorMessage.isNotEmpty
+                        ? Text(
+                            _errorMessage,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.red,
+                            ),
+                            textAlign: TextAlign.center,
+                          )
+                        : Text(
+                            'Distance: ${_distanceInKm.toStringAsFixed(2)} km',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                  ),
                 ),
-                textAlign: TextAlign.center,
-              ),
+              ],
             ),
-          ),
-        ],
-      ),
     );
   }
 }

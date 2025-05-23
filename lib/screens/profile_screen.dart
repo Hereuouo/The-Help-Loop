@@ -109,7 +109,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         placemarks.first.street,
         placemarks.first.locality,
         placemarks.first.administrativeArea,
-      ].where((e) => e != null && e.isNotEmpty).join(', ');
+      ].where((e) => e != null && e!.isNotEmpty).join(', ');
     } catch (_) {
       address = '${picked.latitude}, ${picked.longitude}';
     }
@@ -215,11 +215,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
           end: Alignment.bottomCenter,
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => Navigator.push(
-            context, MaterialPageRoute(builder: (_) => const AddSkillScreen())),
-        child: const Icon(Icons.add),
-      ),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: _isLoading
@@ -299,7 +294,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     runSpacing: 6,
                     children: _user!.skills.map((skill) {
                       return Chip(
-                        label: Text(skill, style: const TextStyle(color: Colors.white)),
+                        label: Text(skill,
+                          style: FontStyles.body(context,
+                              fontSize: 18, color: Colors.white)),
                         backgroundColor: Colors.teal.shade700,
                         deleteIcon: const Icon(Icons.close, color: Colors.white),
                         onDeleted: () => _deleteSkill(skill),
@@ -313,6 +310,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 child: CustomElevatedButton(
                   icon: Icons.calendar_today_outlined,
                   label: "Manage My Bookings",
+                  style: FontStyles.heading(context,
+                      fontSize: 18, color: Colors.white),
                   onPressed: () {
                     Navigator.push(
                       context,
@@ -324,6 +323,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ],
           ),
         ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => Navigator.push(
+            context, MaterialPageRoute(builder: (_) => const AddSkillScreen())),
+        child: const Icon(Icons.add),
       ),
     );
   }

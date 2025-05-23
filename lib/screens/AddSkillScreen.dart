@@ -158,7 +158,9 @@ class _AddSkillScreenState extends State<AddSkillScreen> {
                     spacing: 8,
                     children: _selectedSkills
                         .map((skill) => Chip(
-                      label: Text(skill),
+                      label: Text(skill,
+                        style: FontStyles.body(context,
+                            fontSize: 18, color: Colors.black),),
                       onDeleted: () {
                         setState(() => _selectedSkills.remove(skill));
                       },
@@ -175,6 +177,8 @@ class _AddSkillScreenState extends State<AddSkillScreen> {
               child: CustomElevatedButton(
                 icon: Icons.save,
                 label: 'Save Skills',
+                style: FontStyles.heading(context,
+                    fontSize: 18, color: Colors.white),
                 onPressed: _saveSkills,
               ),
             ),

@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-
+import 'package:thehelploop/widgets/custom_elevated_button.dart';
 import '../widgets/confirm_dialog.dart';
+import '../widgets/rating_dialog.dart';
 import 'base_scaffold.dart';
+import 'font_styles.dart';
 import 'tracking_map_screen.dart';
 
 class MyBookingsScreen extends StatefulWidget {
@@ -14,37 +16,69 @@ class MyBookingsScreen extends StatefulWidget {
   State<MyBookingsScreen> createState() => _MyBookingsScreenState();
 }
 
-class _MyBookingsScreenState extends State<MyBookingsScreen> {
+class _MyBookingsScreenState extends State<MyBookingsScreen>
+    with SingleTickerProviderStateMixin {
   final Map<String, String?> _statuses = {
     'All': null,
     'Pending': 'pending',
     'In Progress': 'in_progress',
     'Completed': 'completed',
   };
+  late TabController _tabController;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: _statuses.length, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return DefaultTabController(
-      length: _statuses.length,
-      child: BaseScaffold(
-        title: 'My Bookings',
-        child: Column(
-          children: [
-            TabBar(
-              labelColor: Colors.white,
-              unselectedLabelColor: Colors.white70,
-              tabs: _statuses.keys.map((status) => Tab(text: status)).toList(),
+    return BaseScaffold(
+      title: 'My Bookings',
+      child: Column(
+        children: [
+          TabBar(
+            controller: _tabController,
+            labelColor: Colors.white,
+            labelStyle: FontStyles.body(
+              context,
+              color: Colors.white,
+              fontSize: 16,
             ),
-            Expanded(
-              child: TabBarView(
-                children: _statuses.values.map((status) {
-            return _MyBookingsTab(status: status);
+            unselectedLabelColor: Colors.white70,
+            unselectedLabelStyle: FontStyles.body(
+              context,
+              color: Colors.white70,
+              fontSize: 16,
+            ),
+            tabs: _statuses.keys.map((status) {
+              return Tab(
+                child: Text(
+                  status,
+                  style: FontStyles.body(context,
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold),
+                ),
+              );
             }).toList(),
-
-      ),
+          ),
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              children: _statuses.values.map((status) {
+                return _MyBookingsTab(status: status);
+              }).toList(),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -52,6 +86,7 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
 
 class _MyBookingsTab extends StatelessWidget {
   final String? status;
+
   const _MyBookingsTab({this.status});
 
   @override
@@ -64,7 +99,8 @@ class _MyBookingsTab extends StatelessWidget {
           .where('fromUserId', isEqualTo: currentUser!.uid)
           .snapshots(),
       builder: (context, snapshot) {
-        if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+        if (!snapshot.hasData)
+          return const Center(child: CircularProgressIndicator());
 
         final bookings = snapshot.data!.docs.where((doc) {
           final docStatus = doc['status']?.toString().toLowerCase();
@@ -73,7 +109,11 @@ class _MyBookingsTab extends StatelessWidget {
         }).toList();
 
         if (bookings.isEmpty) {
-          return const Center(child: Text('No bookings available.'));
+          return Center(
+              child: Text(
+            'No bookings available.',
+            style: FontStyles.body(context, color: Colors.white),
+          ));
         }
 
         return ListView.builder(
@@ -90,11 +130,24 @@ class _MyBookingsTab extends StatelessWidget {
 
 class _MyBookingCard extends StatelessWidget {
   final QueryDocumentSnapshot booking;
+
   const _MyBookingCard({required this.booking});
+
+  Future<bool> _hasRated(BuildContext context, String bookingId,
+      String fromUserId, String toUserId) async {
+    final reviewSnapshot = await FirebaseFirestore.instance
+        .collection('trustReviews')
+        .where('reviewerId', isEqualTo: fromUserId)
+        .where('reviewedUserId', isEqualTo: toUserId)
+        .where('bookingId', isEqualTo: bookingId)
+        .get();
+    return reviewSnapshot.docs.isNotEmpty;
+  }
 
   @override
   Widget build(BuildContext context) {
     final status = booking['status'].toString().toLowerCase();
+    final currentUser = FirebaseAuth.instance.currentUser;
 
     return Card(
       color: _statusColor(status),
@@ -104,8 +157,11 @@ class _MyBookingCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('📍 Location: ${booking['fromAddress']}'),
-            Text('🧠 Skill: ${booking['requestedSkill']}'),
+            Text('📍 Location: ${booking['fromAddress']}',
+                style: FontStyles.body(context,
+                    color: Colors.pinkAccent, fontWeight: FontWeight.bold)),
+            Text('🧠 Skill: ${booking['requestedSkill']}',
+                style: FontStyles.body(context, color: Colors.black)),
             FutureBuilder<DocumentSnapshot>(
               future: FirebaseFirestore.instance
                   .collection('users')
@@ -113,36 +169,81 @@ class _MyBookingCard extends StatelessWidget {
                   .get(),
               builder: (context, userSnapshot) {
                 if (!userSnapshot.hasData) {
-                  return const Text('👤 Loading provider name...');
+                  return Text('👤 Loading provider name...',
+                      style: FontStyles.body(context, color: Colors.black));
                 }
-                final userData = userSnapshot.data!.data() as Map<String, dynamic>?;
+                final userData =
+                    userSnapshot.data!.data() as Map<String, dynamic>?;
                 final providerName = userData != null
                     ? userData['name'] ?? 'Unknown'
                     : 'Unknown';
-                return Text('👤 Skill Provider: $providerName');
+                return Text('👤 Skill Provider: $providerName',
+                    style: FontStyles.body(context, color: Colors.black));
               },
             ),
-            Text('📅 Requested on: ${booking['timestamp'].toDate().toString().split(" ")[0]}'),
-            Text('📅 Start Date: ${booking['startDate'].toDate().toString().split(" ")[0]}'),
-            Text('⌛ Duration: ${booking['duration']}'),
-            Text('📝 Notes: ${booking['notes']?.toString().isNotEmpty == true ? booking['notes'] : 'No notes'}'),
+            Text(
+                '📅 Requested on: ${booking['timestamp'].toDate().toString().split(" ")[0]}',
+                style: FontStyles.body(context, color: Colors.black)),
+            Text(
+                '📅 Start Date: ${booking['startDate'].toDate().toString().split(" ")[0]}',
+                style: FontStyles.body(context, color: Colors.black)),
+            Text('⌛ Duration: ${booking['duration']}',
+                style: FontStyles.body(context, color: Colors.black)),
+            Text(
+                '📝 Notes: ${booking['notes']?.toString().isNotEmpty == true ? booking['notes'] : 'No notes'}',
+                style: FontStyles.body(context, color: Colors.black)),
             const SizedBox(height: 10),
-            Row(
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
               children: [
-                Chip(label: Text('Status: ${_capitalize(status)}')),
-                const Spacer(),
+                Chip(
+                    label: Text('Status: ${_capitalize(status)}',
+                        style: FontStyles.body(context, color: Colors.black))),
                 if (status == 'in_progress')
                   ElevatedButton.icon(
                     icon: const Icon(Icons.map),
-                    label: const Text('Track'),
-                    onPressed: () => _openTrackingMap(context, booking['toUserId']),
+                    label: Text('Track',
+                        style: FontStyles.body(context, color: Colors.black)),
+                    onPressed: () =>
+                        _openTrackingMap(context, booking['toUserId']),
                   ),
-                const SizedBox(width: 8),
-                if (status == 'pending')
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                    child: const Text('Cancel'),
-                    onPressed: () => _confirmCancel(context, booking.id),
+                if (status != 'completed')
+                  CustomElevatedButton(
+                    icon: Icons.cancel_outlined,
+                    label: 'Cancel',
+                    style: FontStyles.heading(context,
+                        fontSize: 16, color: Colors.white),
+                    backgroundColor: Colors.red,
+                    onPressed: () {
+                      _confirmCancel(context, booking.id);
+                    },
+                  ),
+                if (status == 'completed')
+                  FutureBuilder<bool>(
+                    future: _hasRated(context, booking.id, currentUser!.uid,
+                        booking['toUserId']),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const SizedBox.shrink();
+                      }
+                      final hasRated = snapshot.data ?? false;
+                      if (hasRated) return const SizedBox.shrink();
+                      return CustomElevatedButton(
+                        icon: Icons.star,
+                        label: 'Rate the Service',
+                        style: FontStyles.heading(context,
+                            fontSize: 16, color: Colors.white),
+                        backgroundColor: Colors.teal,
+                        onPressed: () async {
+                          await showRatingDialog(
+                            context: context,
+                            userIdToRate: booking['toUserId'],
+                            bookingId: booking.id,
+                          );
+                        },
+                      );
+                    },
                   ),
               ],
             ),
@@ -163,22 +264,37 @@ class _MyBookingCard extends StatelessWidget {
     );
 
     if (confirmed == true) {
-      await FirebaseFirestore.instance.collection('bookings').doc(bookingId).delete();
+      await FirebaseFirestore.instance
+          .collection('bookings')
+          .doc(bookingId)
+          .delete();
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Booking cancelled')),
+        SnackBar(
+          content: Text('Booking cancelled',
+              style: FontStyles.body(context, color: Colors.white)),
+        ),
       );
     }
   }
-  void _openTrackingMap(BuildContext context, String userId) async {
-    final doc = await FirebaseFirestore.instance.collection('users').doc(userId).get();
-    final geo = doc['location'] as GeoPoint?;
-    if (geo == null) return;
 
-    Navigator.push(context, MaterialPageRoute(
-      builder: (_) => TrackingMapScreen(
-        userLocation: LatLng(geo.latitude, geo.longitude),
-      ),
-    ));
+  void _openTrackingMap(BuildContext context, String userId) async {
+    final doc =
+        await FirebaseFirestore.instance.collection('users').doc(userId).get();
+    final geo = doc['location'] as GeoPoint?;
+    if (geo == null) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('No location available',
+              style: FontStyles.body(context, color: Colors.white))));
+      return;
+    }
+
+    Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => TrackingMapScreen(
+            userLocation: LatLng(geo.latitude, geo.longitude),
+          ),
+        ));
   }
 
   Color _statusColor(String status) {

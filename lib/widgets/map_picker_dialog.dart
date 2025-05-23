@@ -73,6 +73,8 @@ class _MapPickerDialogState extends State<MapPickerDialog> {
                   label: 'Select',
                   icon: Icons.check_circle_outline,
                   onPressed: () => Navigator.pop(context, _picked),
+                    style: FontStyles.heading(context,
+                        fontSize: 16, color: Colors.white)
                 )
               ],
             )

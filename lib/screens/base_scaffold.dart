@@ -1,3 +1,4 @@
+// base_scaffold.dart
 import 'package:flutter/material.dart';
 import 'font_styles.dart';
 
@@ -23,13 +24,13 @@ class BaseScaffold extends StatelessWidget {
       appBar: appBar ??
           (title != null
               ? AppBar(
-                  title: Text(title!,
-                      style: FontStyles.heading(context, fontSize: 24)),
-                  backgroundColor: Colors.transparent,
-                  elevation: 0,
-                  iconTheme: const IconThemeData(color: Colors.white),
-                  centerTitle: true,
-                )
+            title: Text(title!,
+                style: FontStyles.heading(context, fontSize: 24)),
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            iconTheme: const IconThemeData(color: Colors.white),
+            centerTitle: true,
+          )
               : null),
       floatingActionButton: floatingActionButton,
       backgroundColor: Color(0xFF537895),

@@ -12,6 +12,7 @@ class CustomElevatedButton extends StatelessWidget {
   final double paddingV;
   final double paddingH;
   final double elevation;
+  final TextStyle? style;
 
   const CustomElevatedButton({
     super.key,
@@ -26,6 +27,7 @@ class CustomElevatedButton extends StatelessWidget {
     this.paddingV = 14,
     this.paddingH = 28,
     this.elevation = 4,
+    this.style
   });
 
   @override
@@ -35,7 +37,7 @@ class CustomElevatedButton extends StatelessWidget {
       icon: Icon(icon, color: iconColor),
       label: Text(
         label,
-        style: TextStyle(color: textColor, fontSize: fontSize),
+        style: style ?? TextStyle(color: textColor, fontSize: fontSize),
       ),
       style: ElevatedButton.styleFrom(
         elevation: elevation,

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'base_scaffold.dart';
-import 'package:thehelploop/screens/welcome_screen.dart';
+import 'welcome_screen.dart';
 
 class AnimatedLogoLoadingScreen extends StatefulWidget {
   const AnimatedLogoLoadingScreen({super.key});

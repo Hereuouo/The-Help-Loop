@@ -16,9 +16,16 @@ class IncomingRequestsScreen extends StatefulWidget {
   State<IncomingRequestsScreen> createState() => _IncomingRequestsScreenState();
 }
 
-class _IncomingRequestsScreenState extends State<IncomingRequestsScreen> with SingleTickerProviderStateMixin {
+class _IncomingRequestsScreenState extends State<IncomingRequestsScreen>
+    with SingleTickerProviderStateMixin {
   final currentUser = FirebaseAuth.instance.currentUser;
-  final List<String> _statuses = ['All', 'pending', 'in_progress', 'completed', 'rejected'];
+  final List<String> _statuses = [
+    'All',
+    'pending',
+    'in_progress',
+    'completed',
+    'rejected'
+  ];
   late TabController _tabController;
 
   @override
@@ -36,19 +43,26 @@ class _IncomingRequestsScreenState extends State<IncomingRequestsScreen> with Si
         child: Column(
           children: [
             TabBar(
+              labelStyle: FontStyles.body(context,
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold),
               controller: _tabController,
               isScrollable: true,
-              labelColor: Colors.white,
               unselectedLabelColor: Colors.teal.shade800,
               indicatorColor: Colors.white,
               tabs: _statuses.map((status) {
-                return Tab(text: status == 'All' ? 'All' : _prettyStatus(status));
-              }).toList(),            ),
+                return Tab(
+                  text: status == 'All' ? 'All' : _prettyStatus(status),
+                );
+              }).toList(),
+            ),
             Expanded(
               child: TabBarView(
                 controller: _tabController,
                 children: _statuses.map((status) {
-                  return _buildBookingList(status == 'All' ? null : status.toLowerCase());
+                  return _buildBookingList(
+                      status == 'All' ? null : status.toLowerCase());
                 }).toList(),
               ),
             ),
@@ -80,7 +94,8 @@ class _IncomingRequestsScreenState extends State<IncomingRequestsScreen> with Si
           .where('toUserId', isEqualTo: currentUser!.uid)
           .snapshots(),
       builder: (context, snapshot) {
-        if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+        if (!snapshot.hasData)
+          return const Center(child: CircularProgressIndicator());
 
         final bookings = snapshot.data!.docs.where((doc) {
           if (status == null) return true;
@@ -101,10 +116,14 @@ class _IncomingRequestsScreenState extends State<IncomingRequestsScreen> with Si
             final status = booking['status'].toString().toLowerCase();
 
             return FutureBuilder<DocumentSnapshot>(
-              future: FirebaseFirestore.instance.collection('users').doc(booking['fromUserId']).get(),
+              future: FirebaseFirestore.instance
+                  .collection('users')
+                  .doc(booking['fromUserId'])
+                  .get(),
               builder: (context, userSnapshot) {
                 if (!userSnapshot.hasData) return const SizedBox();
-                final userData = userSnapshot.data!.data() as Map<String, dynamic>?;
+                final userData =
+                    userSnapshot.data!.data() as Map<String, dynamic>?;
                 final name = userData?['name'] ?? 'Unknown';
 
                 return Card(
@@ -115,17 +134,31 @@ class _IncomingRequestsScreenState extends State<IncomingRequestsScreen> with Si
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text("👤 From: $name", style: FontStyles.body(context)),
-                        Text("📍 Address: ${booking['fromAddress']}"),
-                        Text("📅 Start: ${startDate.toLocal().toString().split(" ")[0]}"),
-                        Text("⌛ Duration: ${booking['duration']}"),
-                        Text("📝 Notes: ${booking['notes'] ?? 'None'}"),
+                        Text("👤 From: $name",
+                            style: FontStyles.body(context,
+                                color: Colors.pinkAccent)),
+                        Text("📍 Address: ${booking['fromAddress']}",
+                            style:
+                                FontStyles.body(context, color: Colors.black)),
+                        Text(
+                            "📅 Start: ${startDate.toLocal().toString().split(" ")[0]}",
+                            style:
+                                FontStyles.body(context, color: Colors.black)),
+                        Text("⌛ Duration: ${booking['duration']}",
+                            style:
+                                FontStyles.body(context, color: Colors.black)),
+                        Text("📝 Notes: ${booking['notes'] ?? 'None'}",
+                            style:
+                                FontStyles.body(context, color: Colors.black)),
                         const SizedBox(height: 10),
                         Wrap(
                           spacing: 8,
                           runSpacing: 8,
                           children: [
-                            Chip(label: Text("Status: $status")),
+                            Chip(
+                                label: Text("Status: $status",
+                                    style: FontStyles.body(context,
+                                        color: Colors.black))),
                             if (status == 'pending') ...[
                               ElevatedButton(
                                 onPressed: () async {
@@ -134,30 +167,48 @@ class _IncomingRequestsScreenState extends State<IncomingRequestsScreen> with Si
                                       .doc(booking.id)
                                       .update({'status': 'in_progress'});
                                 },
-                                child: const Text('Accept'),
+                                child: Text(
+                                  'Accept',
+                                  style: FontStyles.body(context,
+                                      fontSize: 18,
+                                      color: Colors.teal.shade900,
+                                      fontWeight: FontWeight.bold),
+                                ),
                               ),
                               ElevatedButton(
-                                style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                                onPressed: () => _showRejectionDialog(booking.id),
-                                child: const Text('Reject'),
+                                style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.red),
+                                onPressed: () =>
+                                    _showRejectionDialog(booking.id),
+                                child: Text('Reject',
+                                    style: FontStyles.body(context,
+                                        fontSize: 18,
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold)),
                               ),
                             ],
                             if (status == 'in_progress') ...[
                               ElevatedButton.icon(
                                 icon: const Icon(Icons.map),
-                                label: const Text('Track Trip'),
-                                onPressed: () => _trackUser(booking['fromUserId']),
+                                label: Text('Track Trip',
+                                    style: FontStyles.body(context,
+                                        color: Colors.black)),
+                                onPressed: () =>
+                                    _trackUser(booking['fromUserId']),
                               ),
                               Center(
                                 child: CustomElevatedButton(
                                   icon: Icons.check_circle_outline,
                                   label: 'Mark as Completed',
-                                  textColor: Colors.white,
+                                  style: FontStyles.heading(context,
+                                      fontSize: 16, color: Colors.white),
                                   onPressed: () {
                                     if (DateTime.now().isBefore(endDate)) {
-                                      ScaffoldMessenger.of(context).showSnackBar(
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
                                         SnackBar(
-                                          content: Text('Cannot complete before ${endDate.toLocal().toString().split(" ")[0]}'),
+                                          content: Text(
+                                              'Cannot complete before ${endDate.toLocal().toString().split(" ")[0]}'),
                                           backgroundColor: Colors.orange,
                                         ),
                                       );
@@ -197,7 +248,8 @@ class _IncomingRequestsScreenState extends State<IncomingRequestsScreen> with Si
             mainAxisSize: MainAxisSize.min,
             children: [
               Text('Reason for Rejection',
-                  style: FontStyles.heading(context, fontSize: 22, color: Colors.black87)),
+                  style: FontStyles.heading(context,
+                      fontSize: 22, color: Colors.black87)),
               const SizedBox(height: 12),
               TextField(
                 controller: controller,
@@ -205,7 +257,8 @@ class _IncomingRequestsScreenState extends State<IncomingRequestsScreen> with Si
                 decoration: InputDecoration(
                   hintText: 'Enter reason...',
                   hintStyle: FontStyles.body(context, color: Colors.black45),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12)),
                 ),
               ),
               const SizedBox(height: 24),
@@ -215,16 +268,22 @@ class _IncomingRequestsScreenState extends State<IncomingRequestsScreen> with Si
                   TextButton(
                     onPressed: () => Navigator.pop(context),
                     child: Text('Cancel',
-                        style: FontStyles.body(context, color: Colors.deepPurple)),
+                        style:
+                            FontStyles.body(context, color: Colors.deepPurple)),
                   ),
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.redAccent,
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 24, vertical: 12),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
                     ),
                     onPressed: () async {
-                      await FirebaseFirestore.instance.collection('bookings').doc(bookingId).update({
+                      await FirebaseFirestore.instance
+                          .collection('bookings')
+                          .doc(bookingId)
+                          .update({
                         'status': 'rejected',
                         'rejectionReason': controller.text.trim(),
                       });
@@ -257,7 +316,10 @@ class _IncomingRequestsScreenState extends State<IncomingRequestsScreen> with Si
     );
 
     if (confirmed == true) {
-      await FirebaseFirestore.instance.collection('bookings').doc(bookingId).update({
+      await FirebaseFirestore.instance
+          .collection('bookings')
+          .doc(bookingId)
+          .update({
         'status': 'completed',
       });
       await showRatingDialog(
@@ -272,9 +334,11 @@ class _IncomingRequestsScreenState extends State<IncomingRequestsScreen> with Si
   }
 
   void _trackUser(String userId) async {
-    final doc = await FirebaseFirestore.instance.collection('users').doc(userId).get();
+    final doc =
+        await FirebaseFirestore.instance.collection('users').doc(userId).get();
     if (!doc.exists || !doc.data()!.containsKey('location')) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("No location available")));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text("No location available")));
       return;
     }
 
@@ -282,11 +346,11 @@ class _IncomingRequestsScreenState extends State<IncomingRequestsScreen> with Si
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => TrackingMapScreen(userLocation: LatLng(geo.latitude, geo.longitude)),
+        builder: (_) => TrackingMapScreen(
+            userLocation: LatLng(geo.latitude, geo.longitude)),
       ),
     );
   }
-
 
   DateTime _calculateEndDate(DateTime startDate, String duration) {
     switch (duration.trim().toLowerCase()) {
@@ -301,7 +365,6 @@ class _IncomingRequestsScreenState extends State<IncomingRequestsScreen> with Si
         return startDate.add(const Duration(days: 1));
     }
   }
-
 
   Color _statusColor(String status) {
     switch (status) {

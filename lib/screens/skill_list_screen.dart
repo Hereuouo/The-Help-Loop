@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/skill.dart';
-import 'package:thehelploop/services/firestore_service.dart';
+import '../services/firestore_service.dart';
 import 'base_scaffold.dart'; 
 import 'package:firebase_auth/firebase_auth.dart';
 

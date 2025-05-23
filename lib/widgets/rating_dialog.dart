@@ -8,6 +8,7 @@ import '../screens/font_styles.dart';
 Future<void> showRatingDialog({
   required BuildContext context,
   required String userIdToRate,
+  String? bookingId,
 }) async {
   int selectedRating = 0;
   final TextEditingController commentController = TextEditingController();
@@ -53,9 +54,11 @@ Future<void> showRatingDialog({
               maxLines: 2,
               decoration: InputDecoration(
                 hintText: 'Add a comment (optional)',
+                hintStyle: FontStyles.body(context, color: Colors.black45),
                 border:
                     OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
               ),
+              style: FontStyles.body(context, color: Colors.black87),
             ),
             const SizedBox(height: 16),
             Row(
@@ -75,10 +78,14 @@ Future<void> showRatingDialog({
                         reviewedUserId: userIdToRate,
                         rating: selectedRating,
                         comment: commentController.text.trim(),
+                        bookingId: bookingId,
                       );
                       Navigator.pop(context);
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Review submitted ✅')),
+                        SnackBar(
+                            content: Text('Review submitted ✅',
+                                style: FontStyles.body(context,
+                                    color: Colors.white))),
                       );
                     }
                   },
@@ -107,6 +114,7 @@ Future<void> _submitTrustReview({
   required String reviewedUserId,
   required int rating,
   required String comment,
+  String? bookingId,
 }) async {
   final reviewId = const Uuid().v4();
   final review = TrustReview(
@@ -116,23 +124,23 @@ Future<void> _submitTrustReview({
     rating: rating,
     comment: comment,
     createdAt: DateTime.now(),
+    bookingId: bookingId,
   );
 
   final reviewRef = FirebaseFirestore.instance.collection('trustReviews');
-  final userRef = FirebaseFirestore.instance.collection('users').doc(reviewedUserId);
+  final userRef =
+      FirebaseFirestore.instance.collection('users').doc(reviewedUserId);
 
   try {
-
     await reviewRef.doc(reviewId).set(review.toMap());
     print('✅ Review added successfully: $reviewId');
-
 
     final querySnapshot = await reviewRef
         .where('reviewedUserId', isEqualTo: reviewedUserId)
         .get();
 
-    print('📦 Total reviews fetched for user [$reviewedUserId]: ${querySnapshot.docs.length}');
-
+    print(
+        '📦 Total reviews fetched for user [$reviewedUserId]: ${querySnapshot.docs.length}');
 
     final allRatings = querySnapshot.docs.map((doc) {
       final rating = doc.data()['rating'];
@@ -145,10 +153,8 @@ Future<void> _submitTrustReview({
       return;
     }
 
-
     final average = allRatings.reduce((a, b) => a + b) / allRatings.length;
     print('📊 Calculated trustScore average: $average');
-
 
     await userRef.update({
       'trustScore': double.parse(average.toStringAsFixed(2)),

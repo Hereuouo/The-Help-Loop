@@ -65,12 +65,13 @@ class _PostVerificationScreenState extends State<PostVerificationScreen> {
     if (!isWillingToPay!) {
       _showDialog(
         title: "Sorry",
-        message: "Sorry, you won’t be able to use the app without agreeing to the terms. Thank you!",
+        message:
+            "Sorry, you won’t be able to use the app without agreeing to the terms. Thank you!",
         onClose: () {
           Navigator.pushAndRemoveUntil(
             context,
             MaterialPageRoute(builder: (_) => const LoginScreen()),
-                (route) => false,
+            (route) => false,
           );
         },
       );
@@ -85,12 +86,13 @@ class _PostVerificationScreenState extends State<PostVerificationScreen> {
       final custom = customSkillController.text.trim();
       if (custom.isNotEmpty) allSkills.add(custom);
 
-      await _userService.updateSkillsAndPaymentConsent(user.uid, allSkills, true);
+      await _userService.updateSkillsAndPaymentConsent(
+          user.uid, allSkills, true);
 
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(builder: (_) => const HomeScreen()),
-            (route) => false,
+        (route) => false,
       );
     } catch (e) {
       _showDialog(
@@ -100,19 +102,24 @@ class _PostVerificationScreenState extends State<PostVerificationScreen> {
     }
   }
 
-  void _showDialog({required String title, required String message, VoidCallback? onClose}) {
+  void _showDialog(
+      {required String title, required String message, VoidCallback? onClose}) {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        title: Text(title, textAlign: TextAlign.center, style: FontStyles.heading(context, fontSize: 20)),
-        content: Text(message, textAlign: TextAlign.center, style: FontStyles.body(context)),
+        title: Text(title,
+            textAlign: TextAlign.center,
+            style: FontStyles.heading(context, fontSize: 20)),
+        content: Text(message,
+            textAlign: TextAlign.center, style: FontStyles.body(context)),
         actions: [
           TextButton(
             onPressed: () {
               Navigator.of(context).pop();
               if (onClose != null) onClose();
             },
-            child: Text("OK", style: FontStyles.body(context, color: Colors.blue)),
+            child:
+                Text("OK", style: FontStyles.body(context, color: Colors.blue)),
           ),
         ],
       ),
@@ -129,10 +136,10 @@ class _PostVerificationScreenState extends State<PostVerificationScreen> {
           children: [
             Text(
               "Select Your Skills",
-              style: FontStyles.heading(context, fontSize: 24, color: Colors.white),
+              style: FontStyles.heading(context,
+                  fontSize: 24, color: Colors.white),
             ),
             const SizedBox(height: 16),
-
             Wrap(
               spacing: 8,
               runSpacing: 8,
@@ -151,42 +158,40 @@ class _PostVerificationScreenState extends State<PostVerificationScreen> {
                   selectedColor: Colors.greenAccent.shade400,
                   backgroundColor: Colors.white,
                   pressElevation: 0,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8)),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   onSelected: (_) => _toggleSkill(skill),
                 );
               }).toList(),
             ),
-
             const SizedBox(height: 16),
-
             TextField(
               controller: customSkillController,
               style: const TextStyle(color: Colors.white),
               decoration: InputDecoration(
                 labelText: "Add a custom skill",
                 labelStyle: const TextStyle(color: Colors.white70),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                border:
+                    OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                 filled: true,
                 fillColor: Colors.white.withOpacity(0.1),
               ),
             ),
-
             const SizedBox(height: 32),
-
             Text(
               "Are you willing to pay a small fee to receive services if you don’t have skills to exchange?",
               style: FontStyles.body(context, color: Colors.white),
             ),
-
             const SizedBox(height: 12),
-
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Flexible(
                   child: RadioListTile<bool>(
-                    title: Text("Yes", style: FontStyles.body(context, color: Colors.white)),
+                    title: Text("Yes",
+                        style: FontStyles.body(context, color: Colors.white)),
                     value: true,
                     groupValue: isWillingToPay,
                     onChanged: (val) => setState(() => isWillingToPay = val),
@@ -196,7 +201,8 @@ class _PostVerificationScreenState extends State<PostVerificationScreen> {
                 ),
                 Flexible(
                   child: RadioListTile<bool>(
-                    title: Text("No", style: FontStyles.body(context, color: Colors.white)),
+                    title: Text("No",
+                        style: FontStyles.body(context, color: Colors.white)),
                     value: false,
                     groupValue: isWillingToPay,
                     onChanged: (val) => setState(() => isWillingToPay = val),
@@ -207,15 +213,19 @@ class _PostVerificationScreenState extends State<PostVerificationScreen> {
               ],
             ),
             const SizedBox(height: 24),
-
             ElevatedButton(
-              onPressed: selectedSkills.isNotEmpty || customSkillController.text.isNotEmpty ? _submitData : null,
+              onPressed: selectedSkills.isNotEmpty ||
+                      customSkillController.text.isNotEmpty
+                  ? _submitData
+                  : null,
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.blueGrey,
                 padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
               ),
-              child: const Text("Continue", style: TextStyle(fontSize: 18, color: Colors.white)),
+              child: const Text("Continue",
+                  style: TextStyle(fontSize: 18, color: Colors.white)),
             ),
           ],
         ),
