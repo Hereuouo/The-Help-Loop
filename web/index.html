@@ -21,18 +21,96 @@
   <meta name="description" content="A new Flutter project.">
 
   <!-- iOS meta tags & icons -->
-  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="thehelploop">
+  <meta name="apple-mobile-web-app-title" content="the_help_loop_master">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
 
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png"/>
 
-  <title>thehelploop</title>
+  <title>the_help_loop_master</title>
   <link rel="manifest" href="manifest.json">
+
+  <script>
+    // The value below is injected by flutter build, do not touch.
+    const serviceWorkerVersion = null;
+  </script>
+  <!-- This script adds the flutter initialization JS code -->
+  <script src="flutter.js" defer></script>
 </head>
 <body>
-  <script src="flutter_bootstrap.js" async></script>
+  <script>
+    window.addEventListener('load', function(ev) {
+      // Download main.dart.js
+      _flutter.loader.loadEntrypoint({
+        serviceWorker: {
+          serviceWorkerVersion: serviceWorkerVersion,
+        },
+        onEntrypointLoaded: function(engineInitializer) {
+          engineInitializer.initializeEngine().then(function(appRunner) {
+            appRunner.runApp();
+          });
+        }
+      });
+    });
+  </script>
+
+  <script async defer
+          src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBEmSaD9NYFhPjSC3qr8eCdoWLJk-i7_vQ&libraries=places">
+  </script>
+
+  <script>
+    function initWebDirections(originLat, originLng, destLat, destLng) {
+      const origin = { lat: originLat, lng: originLng };
+      const destination = { lat: destLat, lng: destLng };
+
+      const directionsService = new google.maps.DirectionsService();
+      const directionsRenderer = new google.maps.DirectionsRenderer();
+
+      const map = new google.maps.Map(document.getElementById("map"), {
+        zoom: 13,
+        center: origin,
+      });
+
+      directionsRenderer.setMap(map);
+
+      const request = {
+        origin: origin,
+        destination: destination,
+        travelMode: google.maps.TravelMode.DRIVING,
+      };
+
+      directionsService.route(request, function (result, status) {
+        if (status === google.maps.DirectionsStatus.OK) {
+          directionsRenderer.setDirections(result);
+
+          // Calculate distance in kilometers
+          const route = result.routes[0];
+          const leg = route.legs[0];
+          const distanceInMeters = leg.distance.value; // Distance in meters
+          const distanceInKm = distanceInMeters / 1000; // Convert to kilometers
+
+          // Send the distance back to Flutter
+          window.parent.postMessage(
+            {
+              type: "distanceUpdate",
+              distance: distanceInKm,
+            },
+            "*"
+          );
+        } else {
+          console.error("Directions request failed due to " + status);
+          window.parent.postMessage(
+            {
+              type: "distanceError",
+              error: "Directions request failed: " + status,
+            },
+            "*"
+          );
+        }
+      });
+    }
+  </script>
 </body>
 </html>

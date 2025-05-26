@@ -1,13 +1,18 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:thehelploop/screens/tracking_map_screen.dart';
+import '../services/tracking_map_factory.dart';
 import '../widgets/confirm_dialog.dart';
 import '../widgets/custom_elevated_button.dart';
 import '../widgets/rating_dialog.dart';
 import 'base_scaffold.dart';
 import 'font_styles.dart';
+
+import '../web/tracking_map_stub.dart'
+    if (dart.library.html) '../web/tracking_map_web_screen.dart';
 
 class IncomingRequestsScreen extends StatefulWidget {
   const IncomingRequestsScreen({super.key});
@@ -347,8 +352,9 @@ class _IncomingRequestsScreenState extends State<IncomingRequestsScreen>
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => TrackingMapScreen(
-            userLocation: LatLng(geo.latitude, geo.longitude)),
+        builder: (_) => TrackingMapFactory.create(
+          userLocation: LatLng(geo.latitude, geo.longitude),
+        ),
       ),
     );
   }

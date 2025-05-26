@@ -1,4 +1,5 @@
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:geocoding/geocoding.dart' as geo;
@@ -7,8 +8,10 @@ import 'firebase_options.dart';
 import 'screens/animated_logo_loading_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/registration_screen.dart';
-
-
+import 'screens/skill_list_screen.dart';
+import 'screens/booking_screen.dart';
+import 'screens/tracking_screen.dart';
+import 'package:firebase_app_check/firebase_app_check.dart';
 
 
 void main() async {
@@ -17,12 +20,9 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform
   );
-  //
-  // await FirebaseAppCheck.instance.activate(
-  //   androidProvider: AndroidProvider.playIntegrity,
-  //   appleProvider: AppleProvider.appAttest,
-  // );
-  await geo.setLocaleIdentifier('en');
+  if(!kIsWeb){
+    await geo.setLocaleIdentifier('en');
+  }
   runApp(const MyApp());
 }
 
@@ -60,7 +60,8 @@ class MyApp extends StatelessWidget {
 routes: {
   '/login': (context) => const LoginScreen(),
   '/register': (context) => const RegisterScreen(),
- 
+  '/skills': (context) => const SkillListScreen(),
+  '/tracking': (context) => const TrackingScreen(),
 },
     );
   }

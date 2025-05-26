@@ -1,13 +1,18 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:thehelploop/widgets/custom_elevated_button.dart';
+import '../services/tracking_map_factory.dart';
 import '../widgets/confirm_dialog.dart';
 import '../widgets/rating_dialog.dart';
 import 'base_scaffold.dart';
 import 'font_styles.dart';
 import 'tracking_map_screen.dart';
+
+import '../web/tracking_map_stub.dart'
+if (dart.library.html) '../web/tracking_map_web_screen.dart';
 
 class MyBookingsScreen extends StatefulWidget {
   const MyBookingsScreen({super.key});
@@ -112,9 +117,9 @@ class _MyBookingsTab extends StatelessWidget {
         if (bookings.isEmpty) {
           return Center(
               child: Text(
-            'No bookings available.',
-            style: FontStyles.body(context, color: Colors.white),
-          ));
+                'No bookings available.',
+                style: FontStyles.body(context, color: Colors.white),
+              ));
         }
 
         return ListView.builder(
@@ -174,7 +179,7 @@ class _MyBookingCard extends StatelessWidget {
                       style: FontStyles.body(context, color: Colors.black));
                 }
                 final userData =
-                    userSnapshot.data!.data() as Map<String, dynamic>?;
+                userSnapshot.data!.data() as Map<String, dynamic>?;
                 final providerName = userData != null
                     ? userData['name'] ?? 'Unknown'
                     : 'Unknown';
@@ -280,7 +285,7 @@ class _MyBookingCard extends StatelessWidget {
 
   void _openTrackingMap(BuildContext context, String userId) async {
     final doc =
-        await FirebaseFirestore.instance.collection('users').doc(userId).get();
+    await FirebaseFirestore.instance.collection('users').doc(userId).get();
     final geo = doc['location'] as GeoPoint?;
     if (geo == null) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -290,13 +295,15 @@ class _MyBookingCard extends StatelessWidget {
     }
 
     Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => TrackingMapScreen(
-            userLocation: LatLng(geo.latitude, geo.longitude),
-          ),
-        ));
+      context,
+      MaterialPageRoute(
+        builder: (_) => TrackingMapFactory.create(
+          userLocation: LatLng(geo.latitude, geo.longitude),
+        ),
+      ),
+    );
   }
+
 
   Color _statusColor(String status) {
     switch (status) {
