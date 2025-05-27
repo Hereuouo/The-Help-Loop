@@ -1,5 +1,5 @@
 @JS()
-library js_directions;
+library;
 
 import 'package:js/js.dart';
 

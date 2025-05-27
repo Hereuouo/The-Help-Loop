@@ -282,6 +282,7 @@ class BookingScreen extends StatelessWidget {
     );
 
     try {
+      if (distanceKm > 50) {}
       await FirebaseFirestore.instance
           .collection('bookings')
           .add(booking.toMap());

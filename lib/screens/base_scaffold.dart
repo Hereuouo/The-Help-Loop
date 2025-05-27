@@ -1,4 +1,3 @@
-// base_scaffold.dart
 import 'package:flutter/material.dart';
 import 'font_styles.dart';
 
@@ -8,6 +7,7 @@ class BaseScaffold extends StatelessWidget {
   final Widget? floatingActionButton;
   final Decoration? decoration;
   final String? title;
+  final List<Widget>? actions;
 
   const BaseScaffold({
     super.key,
@@ -16,6 +16,7 @@ class BaseScaffold extends StatelessWidget {
     this.floatingActionButton,
     this.decoration,
     this.title,
+    this.actions,
   });
 
   @override
@@ -24,13 +25,14 @@ class BaseScaffold extends StatelessWidget {
       appBar: appBar ??
           (title != null
               ? AppBar(
-            title: Text(title!,
-                style: FontStyles.heading(context, fontSize: 24)),
-            backgroundColor: Colors.transparent,
-            elevation: 0,
-            iconTheme: const IconThemeData(color: Colors.white),
-            centerTitle: true,
-          )
+                  title: Text(title!,
+                      style: FontStyles.heading(context, fontSize: 24)),
+                  backgroundColor: Colors.transparent,
+                  elevation: 0,
+                  iconTheme: const IconThemeData(color: Colors.white),
+                  centerTitle: true,
+                  actions: actions,
+                )
               : null),
       floatingActionButton: floatingActionButton,
       backgroundColor: Color(0xFF537895),
@@ -54,3 +56,4 @@ class BaseScaffold extends StatelessWidget {
     );
   }
 }
+

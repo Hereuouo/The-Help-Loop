@@ -13,6 +13,11 @@ class BookingRequest {
   final String status;
   final DateTime timestamp;
 
+  final String? exchangeType;
+  final String? exchangedSkill;
+  final double? feeAmount;
+  final String? paymentStatus;
+
   BookingRequest({
     required this.fromUserId,
     required this.toUserId,
@@ -24,6 +29,10 @@ class BookingRequest {
     required this.fromAddress,
     required this.distanceKm,
     this.status = 'pending',
+    this.exchangeType,
+    this.exchangedSkill,
+    this.feeAmount,
+    this.paymentStatus,
     DateTime? timestamp,
   }) : timestamp = timestamp ?? DateTime.now();
 
@@ -39,5 +48,9 @@ class BookingRequest {
         'distanceKm': distanceKm,
         'status': status,
         'timestamp': timestamp,
+        'exchangeType': exchangeType,
+        'exchangedSkill': exchangedSkill,
+        'feeAmount': feeAmount,
+        'paymentStatus': paymentStatus,
       };
 }

@@ -9,10 +9,10 @@ import '../widgets/confirm_dialog.dart';
 import '../widgets/rating_dialog.dart';
 import 'base_scaffold.dart';
 import 'font_styles.dart';
-import 'tracking_map_screen.dart';
+import 'payment_requests_screen.dart';
 
 import '../web/tracking_map_stub.dart'
-if (dart.library.html) '../web/tracking_map_web_screen.dart';
+    if (dart.library.html) '../web/tracking_map_web_screen.dart';
 
 class MyBookingsScreen extends StatefulWidget {
   const MyBookingsScreen({super.key});
@@ -26,8 +26,10 @@ class _MyBookingsScreenState extends State<MyBookingsScreen>
   final Map<String, String?> _statuses = {
     'All': null,
     'Pending': 'pending',
+    'Payment Pending': 'payment_pending',
     'In Progress': 'in_progress',
     'Completed': 'completed',
+    'Rejected': 'rejected',
   };
   late TabController _tabController;
 
@@ -47,6 +49,47 @@ class _MyBookingsScreenState extends State<MyBookingsScreen>
   Widget build(BuildContext context) {
     return BaseScaffold(
       title: 'My Bookings',
+      actions: [
+        StreamBuilder<QuerySnapshot>(
+          stream: FirebaseFirestore.instance
+              .collection('bookings')
+              .where('fromUserId',
+                  isEqualTo: FirebaseAuth.instance.currentUser?.uid)
+              .where('status', isEqualTo: 'payment_pending')
+              .snapshots(),
+          builder: (context, snapshot) {
+            if (snapshot.hasData && (snapshot.data?.docs.length ?? 0) > 0) {
+              return IconButton(
+                icon: Badge(
+                  label: Text(snapshot.data!.docs.length.toString()),
+                  child: const Icon(Icons.payment, size: 28),
+                ),
+                tooltip: 'Payment Requests',
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const PaymentRequestsScreen(),
+                    ),
+                  );
+                },
+              );
+            }
+            return IconButton(
+              icon: const Icon(Icons.payment_outlined),
+              tooltip: 'Payment Requests',
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const PaymentRequestsScreen(),
+                  ),
+                );
+              },
+            );
+          },
+        ),
+      ],
       child: Column(
         children: [
           TabBar(
@@ -63,6 +106,7 @@ class _MyBookingsScreenState extends State<MyBookingsScreen>
               color: Colors.white70,
               fontSize: 16,
             ),
+            isScrollable: true,
             tabs: _statuses.keys.map((status) {
               return Tab(
                 child: Text(
@@ -117,9 +161,9 @@ class _MyBookingsTab extends StatelessWidget {
         if (bookings.isEmpty) {
           return Center(
               child: Text(
-                'No bookings available.',
-                style: FontStyles.body(context, color: Colors.white),
-              ));
+            'No bookings available.',
+            style: FontStyles.body(context, color: Colors.white),
+          ));
         }
 
         return ListView.builder(
@@ -154,6 +198,8 @@ class _MyBookingCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final status = booking['status'].toString().toLowerCase();
     final currentUser = FirebaseAuth.instance.currentUser;
+    final exchangeType = booking['exchangeType'];
+    final paymentStatus = booking['paymentStatus'];
 
     return Card(
       color: _statusColor(status),
@@ -168,6 +214,23 @@ class _MyBookingCard extends StatelessWidget {
                     color: Colors.pinkAccent, fontWeight: FontWeight.bold)),
             Text('🧠 Skill: ${booking['requestedSkill']}',
                 style: FontStyles.body(context, color: Colors.black)),
+            if (exchangeType == 'skill')
+              Text(
+                  '🔄 Exchange: ${booking['exchangedSkill'] ?? 'Skill exchange'}',
+                  style: FontStyles.body(context,
+                      color: Colors.deepPurple, fontWeight: FontWeight.bold)),
+            if (exchangeType == 'fee')
+              Text(
+                  '💰 Fee: ${booking['feeAmount']?.toStringAsFixed(2) ?? '0.00'}',
+                  style: FontStyles.body(context,
+                      color: Colors.deepPurple, fontWeight: FontWeight.bold)),
+            if (paymentStatus != null)
+              Text('💳 Payment: ${_capitalize(paymentStatus)}',
+                  style: FontStyles.body(context,
+                      color: paymentStatus == 'completed'
+                          ? Colors.green
+                          : Colors.orange,
+                      fontWeight: FontWeight.bold)),
             FutureBuilder<DocumentSnapshot>(
               future: FirebaseFirestore.instance
                   .collection('users')
@@ -179,7 +242,7 @@ class _MyBookingCard extends StatelessWidget {
                       style: FontStyles.body(context, color: Colors.black));
                 }
                 final userData =
-                userSnapshot.data!.data() as Map<String, dynamic>?;
+                    userSnapshot.data!.data() as Map<String, dynamic>?;
                 final providerName = userData != null
                     ? userData['name'] ?? 'Unknown'
                     : 'Unknown';
@@ -206,6 +269,22 @@ class _MyBookingCard extends StatelessWidget {
                 Chip(
                     label: Text('Status: ${_capitalize(status)}',
                         style: FontStyles.body(context, color: Colors.black))),
+                if (status == 'payment_pending')
+                  CustomElevatedButton(
+                    icon: Icons.payment,
+                    label: 'View Payment Request',
+                    style: FontStyles.heading(context,
+                        fontSize: 16, color: Colors.white),
+                    backgroundColor: Colors.amber.shade700,
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const PaymentRequestsScreen(),
+                        ),
+                      );
+                    },
+                  ),
                 if (status == 'in_progress')
                   ElevatedButton.icon(
                     icon: const Icon(Icons.map),
@@ -214,7 +293,7 @@ class _MyBookingCard extends StatelessWidget {
                     onPressed: () =>
                         _openTrackingMap(context, booking['toUserId']),
                   ),
-                if (status != 'completed')
+                if (status == 'pending')
                   CustomElevatedButton(
                     icon: Icons.cancel_outlined,
                     label: 'Cancel',
@@ -273,7 +352,10 @@ class _MyBookingCard extends StatelessWidget {
       await FirebaseFirestore.instance
           .collection('bookings')
           .doc(bookingId)
-          .delete();
+          .update({
+        'status': 'rejected',
+        'rejectionReason': 'Cancelled by requester',
+      });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Booking cancelled',
@@ -285,7 +367,7 @@ class _MyBookingCard extends StatelessWidget {
 
   void _openTrackingMap(BuildContext context, String userId) async {
     final doc =
-    await FirebaseFirestore.instance.collection('users').doc(userId).get();
+        await FirebaseFirestore.instance.collection('users').doc(userId).get();
     final geo = doc['location'] as GeoPoint?;
     if (geo == null) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -304,11 +386,12 @@ class _MyBookingCard extends StatelessWidget {
     );
   }
 
-
   Color _statusColor(String status) {
     switch (status) {
       case 'pending':
         return Colors.orange.shade200;
+      case 'payment_pending':
+        return Colors.yellow.shade200;
       case 'in_progress':
         return Colors.blue.shade200;
       case 'completed':

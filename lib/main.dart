@@ -9,9 +9,7 @@ import 'screens/animated_logo_loading_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/registration_screen.dart';
 import 'screens/skill_list_screen.dart';
-import 'screens/booking_screen.dart';
 import 'screens/tracking_screen.dart';
-import 'package:firebase_app_check/firebase_app_check.dart';
 
 
 void main() async {
