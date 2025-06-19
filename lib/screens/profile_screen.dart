@@ -7,6 +7,7 @@ import 'package:geocoding/geocoding.dart' as geo;
 import '../models/user.dart';
 import '../widgets/confirm_dialog.dart';
 import '../widgets/custom_elevated_button.dart';
+import '../generated/l10n.dart';
 import 'AddSkillScreen.dart';
 import 'base_scaffold.dart';
 import 'font_styles.dart';
@@ -87,9 +88,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
           trustScore: _user!.trustScore,
         );
       });
-      _showSnackbar('Name updated successfully!');
+      _showSnackbar(S.of(context).nameUpdatedSuccessfully);
     } catch (e) {
-      _showSnackbar('Failed: $e', isError: true);
+      _showSnackbar(S.of(context).failedToUpdate(e.toString()), isError: true);
     }
   }
 
@@ -135,18 +136,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
         );
         _address = address;
       });
-      _showSnackbar('Location updated!');
+      _showSnackbar(S.of(context).locationUpdated);
     } catch (e) {
-      _showSnackbar('Error: $e', isError: true);
+      _showSnackbar(S.of(context).failedToUpdate(e.toString()), isError: true);
     }
   }
 
   Future<void> _deleteSkill(String skill) async {
     final confirmed = await showConfirmDialog(
       context: context,
-      title: 'Confirm Delete',
-      message: 'Are you sure you want to remove "$skill"?',
-      confirmText: 'Delete',
+      title: S.of(context).confirmDelete,
+      message: S.of(context).confirmDeleteSkill(skill),
+      confirmText: S.of(context).delete,
       confirmColor: Colors.redAccent,
     );
 
@@ -173,9 +174,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
           trustScore: _user!.trustScore,
         );
       });
-      _showSnackbar('Skill "$skill" deleted');
+      _showSnackbar(S.of(context).skillDeleted(skill));
     } catch (e) {
-      _showSnackbar('Error: $e', isError: true);
+      _showSnackbar(S.of(context).failedToUpdate(e.toString()), isError: true);
     }
   }
 
@@ -207,7 +208,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return BaseScaffold(
-      title: 'Profile',
+      title: S.of(context).profile,
       decoration: const BoxDecoration(
         gradient: LinearGradient(
           colors: [Color(0xFF09203F), Color(0xFF537895)],
@@ -248,7 +249,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             child: TextField(
                               controller: _nameController,
                               decoration: InputDecoration(
-                                labelText: 'Name',
+                                labelText: S.of(context).name,
                                 labelStyle: TextStyle(color: Colors.teal.shade700),
                                 border: const OutlineInputBorder(),
                                 focusedBorder: OutlineInputBorder(
@@ -264,15 +265,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ],
                       ),
                       const SizedBox(height: 16),
-                      _buildInfoRow(Icons.email, 'Email', _user!.email),
-                      _buildInfoRow(Icons.cake, 'Age', _user!.age?.toString() ?? 'N/A'),
-                      _buildInfoRow(Icons.person_outline, 'Gender', _user!.gender ?? 'N/A'),
-                      _buildInfoRow(Icons.verified_user, 'Trust Score', _user!.trustScore.toString()),
-                      _buildInfoRow(Icons.attach_money, 'Willing to Pay', _user!.willingToPay ? 'Yes' : 'No'),
+                      _buildInfoRow(Icons.email, S.of(context).email, _user!.email),
+                      _buildInfoRow(Icons.cake, S.of(context).age, _user!.age?.toString() ?? S.of(context).notSelected),
+                      _buildInfoRow(Icons.person_outline, S.of(context).gender, _user!.gender ?? S.of(context).notSelected),
+                      _buildInfoRow(Icons.verified_user, S.of(context).trustScore, _user!.trustScore.toString()),
+                      _buildInfoRow(Icons.attach_money, S.of(context).willingToPay, _user!.willingToPay ? S.of(context).yes : S.of(context).no),
                       const SizedBox(height: 16),
                       Row(
                         children: [
-                          Expanded(child: Text('📍 Location: $_address')),
+                          Expanded(child: Text('📍 ${S.of(context).location}: $_address')),
                           IconButton(
                             icon: const Icon(Icons.location_on, color: Colors.teal),
                             onPressed: _updateLocation,
@@ -284,7 +285,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
               ),
               const SizedBox(height: 20),
-              Text('Skills',
+              Text(S.of(context).skills,
                   style: FontStyles.heading(context, fontSize: 20, color: Colors.white)),
               const SizedBox(height: 8),
               Card(
@@ -293,15 +294,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 child: Padding(
                   padding: const EdgeInsets.all(12.0),
                   child: _user!.skills.isEmpty
-                      ? Text('No skills added.', style: FontStyles.body(context, color: Colors.black54))
+                      ? Text(S.of(context).noSkillsAdded, style: FontStyles.body(context, color: Colors.black54))
                       : Wrap(
                     spacing: 8,
                     runSpacing: 6,
                     children: _user!.skills.map((skill) {
                       return Chip(
                         label: Text(skill,
-                          style: FontStyles.body(context,
-                              fontSize: 18, color: Colors.white)),
+                            style: FontStyles.body(context,
+                                fontSize: 18, color: Colors.white)),
                         backgroundColor: Colors.teal.shade700,
                         deleteIcon: const Icon(Icons.close, color: Colors.white),
                         onDeleted: () => _deleteSkill(skill),
@@ -314,7 +315,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               Center(
                 child: CustomElevatedButton(
                   icon: Icons.calendar_today_outlined,
-                  label: "Manage My Bookings",
+                  label: S.of(context).manageMyBookings,
                   style: FontStyles.heading(context,
                       fontSize: 18, color: Colors.white),
                   onPressed: () {

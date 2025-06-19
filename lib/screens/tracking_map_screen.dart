@@ -5,16 +5,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:flutter_google_maps_webservices/directions.dart' as gmaps;
-import 'package:thehelploop/screens/base_scaffold.dart';
+import 'package:the_help_loop_master/screens/base_scaffold.dart';
 
-class TrackingMapScreen extends StatefulWidget {
-  final LatLng userLocation;
+import '../generated/l10n.dart';
+import '../models/tracking_map_interface.dart';
 
-  const TrackingMapScreen({super.key, required this.userLocation});
+
+class TrackingMapScreen extends TrackingMapInterface {
+  const TrackingMapScreen({super.key, required super.userLocation});
 
   @override
   State<TrackingMapScreen> createState() => _TrackingMapScreenState();
 }
+
 
 class _TrackingMapScreenState extends State<TrackingMapScreen> {
   GoogleMapController? _mapController;
@@ -46,12 +49,12 @@ class _TrackingMapScreenState extends State<TrackingMapScreen> {
         await _getPolylinePoints();
       } else {
         setState(() {
-          _errorMessage = 'Destination location not found';
+          _errorMessage = S.of(context).destinationLocationNotFound;
         });
       }
     } catch (e) {
       setState(() {
-        _errorMessage = 'Error fetching location: $e';
+        _errorMessage = '${S.of(context).errorFetchingLocation}: $e';
       });
     }
 
@@ -88,7 +91,7 @@ class _TrackingMapScreenState extends State<TrackingMapScreen> {
     } else {
       setState(() {
         _errorMessage =
-            'No route found: ${response.errorMessage ?? response.status}';
+            '${S.of(context).noRouteFound} ${response.errorMessage ?? response.status}';
       });
     }
   }
@@ -99,7 +102,7 @@ class _TrackingMapScreenState extends State<TrackingMapScreen> {
     final destination = _destination;
 
     return BaseScaffold(
-      title: 'Track Distance',
+      title: S.of(context).trackDistance,
       child: destination == null
           ? const Center(child: CircularProgressIndicator())
           : Stack(
@@ -112,12 +115,12 @@ class _TrackingMapScreenState extends State<TrackingMapScreen> {
                     Marker(
                       markerId: const MarkerId('origin'),
                       position: origin,
-                      infoWindow: const InfoWindow(title: 'Sender'),
+                      infoWindow: InfoWindow(title: S.of(context).sender),
                     ),
                     Marker(
                       markerId: const MarkerId('destination'),
                       position: destination,
-                      infoWindow: const InfoWindow(title: 'You'),
+                      infoWindow: InfoWindow(title: S.of(context).you),
                     ),
                   },
                   polylines: {
@@ -147,7 +150,7 @@ class _TrackingMapScreenState extends State<TrackingMapScreen> {
                             textAlign: TextAlign.center,
                           )
                         : Text(
-                            'Distance: ${_distanceInKm.toStringAsFixed(2)} km',
+                      '${S.of(context).distance}: ${_distanceInKm.toStringAsFixed(2)} km',
                             style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,

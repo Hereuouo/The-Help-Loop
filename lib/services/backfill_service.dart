@@ -1,15 +1,11 @@
 import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import '../global_constants.dart';
+
 class BackfillService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  final List<String> predefinedSkills = [
-    "Graphic Design", "Translation", "Programming", "Childcare", "Device Repair",
-    "Private Tutoring", "Photography", "Writing", "Video Editing", "Web Development",
-    "Marketing", "Cooking", "Gardening", "Painting", "Carpentry", "Sewing",
-    "Fitness Training", "Music Lessons", "Event Planning", "Accounting"
-  ];
 
   Future<void> runBackfillForUsers() async {
     try {
@@ -20,26 +16,31 @@ class BackfillService {
         final data = doc.data();
         List<String> skills = [];
 
-
         if (data['skills'] != null && data['skills'] is List && (data['skills'] as List).isNotEmpty) {
           skills = List<String>.from(data['skills']);
         } else {
-
           skills = List.generate(3, (_) => predefinedSkills[random.nextInt(predefinedSkills.length)]);
           await doc.reference.update({'skills': skills});
         }
 
         final input = skills.join(', ');
-        await doc.reference.update({
-          'input': input,
-          'status': {
-            'firestore-vector-search': {
-              'state': 'COMPLETED'
-            }
-          },
-          'searchHistory': [],
-          'willingToPay':true,
-        });
+
+        final hasEmbedding = data.containsKey('embedding');
+        final hasCompletedStatus = data['status']?['firestore-vector-search']?['state'] == 'COMPLETED';
+
+
+        if (!hasEmbedding || !hasCompletedStatus) {
+          await doc.reference.update({
+            'input': input,
+            'status': {
+              'firestore-vector-search': {
+                'state': 'PENDING'
+              }
+            },
+            'searchHistory': [],
+            'willingToPay': true,
+          });
+        }
       }
 
       print('Backfill complete for all users.');

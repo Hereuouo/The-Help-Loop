@@ -27,7 +27,7 @@ class _AnimatedLogoLoadingScreenState extends State<AnimatedLogoLoadingScreen>
       CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
     );
 
-    // Delay navigation to Welcome screen
+
     Future.delayed(const Duration(seconds: 3), () {
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (_) => const WelcomeScreen()),

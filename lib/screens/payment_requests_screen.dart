@@ -5,6 +5,7 @@ import 'font_styles.dart';
 import 'base_scaffold.dart';
 import 'package:flutter/services.dart';
 import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
+import '../generated/l10n.dart';
 
 class PaymentRequestsScreen extends StatelessWidget {
   const PaymentRequestsScreen({super.key});
@@ -14,15 +15,15 @@ class PaymentRequestsScreen extends StatelessWidget {
     final currentUser = FirebaseAuth.instance.currentUser;
 
     if (currentUser == null) {
-      return const Scaffold(
+      return Scaffold(
         body: Center(
-          child: Text('You must be logged in to view payment requests'),
+          child: Text(S.of(context).mustLoginFirst),
         ),
       );
     }
 
     return BaseScaffold(
-      title: 'Payment Requests',
+      title: S.of(context).paymentRequests,
       child: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance
             .collection('bookings')
@@ -31,7 +32,7 @@ class PaymentRequestsScreen extends StatelessWidget {
             .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
+            return Center(child: CircularProgressIndicator());
           }
 
           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
@@ -43,7 +44,7 @@ class PaymentRequestsScreen extends StatelessWidget {
                       size: 64, color: Colors.grey.shade400),
                   const SizedBox(height: 16),
                   Text(
-                    'No payment requests at this time',
+                    S.of(context).noPaymentRequests,
                     style: FontStyles.heading(context,
                         color: Colors.grey.shade700),
                   ),
@@ -70,9 +71,9 @@ class PaymentRequestsScreen extends StatelessWidget {
                   }
 
                   final providerData =
-                      providerSnapshot.data!.data() as Map<String, dynamic>;
+                  providerSnapshot.data!.data() as Map<String, dynamic>;
                   final providerName =
-                      providerData['name'] ?? 'Unknown Provider';
+                      providerData['name'] ?? S.of(context).unknown;
 
                   return Card(
                     margin: const EdgeInsets.only(bottom: 16),
@@ -101,7 +102,7 @@ class PaymentRequestsScreen extends StatelessWidget {
                           ),
                           const SizedBox(height: 12),
                           Text(
-                            "Service: ${data['requestedSkill']}",
+                            "${S.of(context).skill}: ${data['requestedSkill']}",
                             style: FontStyles.body(context,
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
@@ -109,14 +110,14 @@ class PaymentRequestsScreen extends StatelessWidget {
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            "Start Date: ${(data['startDate'] as Timestamp).toDate().toString().split(' ')[0]}",
+                            "${S.of(context).startDate}: ${(data['startDate'] as Timestamp).toDate().toString().split(' ')[0]}",
                             style:
-                                FontStyles.body(context, color: Colors.black),
+                            FontStyles.body(context, color: Colors.black),
                           ),
                           Text(
-                            "Duration: ${data['duration']}",
+                            "${S.of(context).duration}: ${data['duration']}",
                             style:
-                                FontStyles.body(context, color: Colors.black),
+                            FontStyles.body(context, color: Colors.black),
                           ),
                           const SizedBox(height: 16),
                           Container(
@@ -132,7 +133,7 @@ class PaymentRequestsScreen extends StatelessWidget {
                                     color: Colors.amber),
                                 const SizedBox(width: 8),
                                 Text(
-                                  "Requested Fee: ${data['feeAmount']?.toStringAsFixed(2) ?? '0.00'}",
+                                  "${S.of(context).fee}: ${data['feeAmount']?.toStringAsFixed(2) ?? '0.00'}",
                                   style: FontStyles.body(context,
                                       fontSize: 18,
                                       fontWeight: FontWeight.bold,
@@ -150,7 +151,7 @@ class PaymentRequestsScreen extends StatelessWidget {
                                   icon: const Icon(Icons.cancel_outlined,
                                       color: Colors.white),
                                   label: Text(
-                                    'Cancel Booking',
+                                    S.of(context).cancelBooking,
                                     style: FontStyles.body(context,
                                         color: Colors.white),
                                   ),
@@ -169,7 +170,7 @@ class PaymentRequestsScreen extends StatelessWidget {
                                   icon: const Icon(Icons.payment,
                                       color: Colors.white),
                                   label: Text(
-                                    'Pay Now',
+                                    S.of(context).payNow,
                                     style: FontStyles.body(context,
                                         color: Colors.white),
                                   ),
@@ -180,7 +181,7 @@ class PaymentRequestsScreen extends StatelessWidget {
                                   ),
                                   onPressed: () {
                                     final feeAmount =
-                                        (data['feeAmount'] ?? 0.0) as double;
+                                    (data['feeAmount'] ?? 0.0) as double;
                                     _confirmPayment(context, doc.id, feeAmount);
                                   },
                                 ),
@@ -206,7 +207,7 @@ class PaymentRequestsScreen extends StatelessWidget {
     final scaffoldMessenger = ScaffoldMessenger.of(context);
 
     final amountController =
-        TextEditingController(text: feeAmount.toStringAsFixed(2));
+    TextEditingController(text: feeAmount.toStringAsFixed(2));
     final cardNumberController = TextEditingController();
     final expiryDateController = TextEditingController();
     final cvvController = TextEditingController();
@@ -214,15 +215,15 @@ class PaymentRequestsScreen extends StatelessWidget {
     var cardFormatter = MaskTextInputFormatter(
         mask: '#### #### #### ####', filter: {"#": RegExp(r'[0-9]')});
     var expiryFormatter =
-        MaskTextInputFormatter(mask: '##/##', filter: {"#": RegExp(r'[0-9]')});
+    MaskTextInputFormatter(mask: '##/##', filter: {"#": RegExp(r'[0-9]')});
     var cvvFormatter =
-        MaskTextInputFormatter(mask: '###', filter: {"#": RegExp(r'[0-9]')});
+    MaskTextInputFormatter(mask: '###', filter: {"#": RegExp(r'[0-9]')});
 
     String? selectedPaymentMethod;
     final List<Map<String, String>> paymentMethods = [
-      {"name": "Mada", "image": "assets/images/mada.png"},
-      {"name": "MasterCard", "image": "assets/images/mastercard.png"},
-      {"name": "STC Pay", "image": "assets/images/stc.png"},
+      {"name": "Mada", "image": "lib/assets/images/mada.png"},
+      {"name": "MasterCard", "image": "lib/assets/images/mastercard.png"},
+      {"name": "STC Pay", "image": "lib/assets/images/stc.png"},
     ];
 
     bool showCardError = false;
@@ -248,21 +249,22 @@ class PaymentRequestsScreen extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Center(
-                        child: Text("Payment",
+                        child: Text(S.of(context).payment,
                             style: FontStyles.heading(context,
                                 fontSize: 24, color: Colors.teal.shade900)),
                       ),
                       const SizedBox(height: 20),
                       _buildPaymentField(
                         context,
-                        "Amount",
+                        S.of(context).amount,
                         amountController,
                         Icons.attach_money,
                         true,
                         null,
                       ),
                       const SizedBox(height: 20),
-                      Text("Select Payment Method",
+                      Text(
+                          S.of(context).selectPaymentMethod,
                           style: FontStyles.body(context,
                               color: Colors.black87,
                               fontWeight: FontWeight.bold,
@@ -272,49 +274,49 @@ class PaymentRequestsScreen extends StatelessWidget {
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: paymentMethods
                             .map((method) => GestureDetector(
-                                  onTap: () {
-                                    setState(() {
-                                      selectedPaymentMethod =
-                                          method["name"] as String;
-                                      showPaymentMethodError = false;
-                                    });
-                                  },
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 12, vertical: 8),
-                                    decoration: BoxDecoration(
-                                      color: Colors.white,
-                                      borderRadius: BorderRadius.circular(12),
-                                      border: Border.all(
-                                          color: selectedPaymentMethod ==
-                                                  method["name"]
-                                              ? const Color(0xFF00695C)
-                                              : Colors.grey.shade300,
-                                          width: 2),
-                                    ),
-                                    child: Image.asset(
-                                      method["image"] as String,
-                                      width: 60,
-                                      height: 40,
-                                      fit: BoxFit.contain,
-                                      errorBuilder:
-                                          (context, error, stackTrace) {
-                                        return Icon(
-                                          Icons.credit_card,
-                                          size: 40,
-                                          color: Colors.grey.shade500,
-                                        );
-                                      },
-                                    ),
-                                  ),
-                                ))
+                          onTap: () {
+                            setState(() {
+                              selectedPaymentMethod =
+                              method["name"] as String;
+                              showPaymentMethodError = false;
+                            });
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                  color: selectedPaymentMethod ==
+                                      method["name"]
+                                      ? const Color(0xFF00695C)
+                                      : Colors.grey.shade300,
+                                  width: 2),
+                            ),
+                            child: Image.asset(
+                              method["image"] as String,
+                              width: 60,
+                              height: 40,
+                              fit: BoxFit.contain,
+                              errorBuilder:
+                                  (context, error, stackTrace) {
+                                return Icon(
+                                  Icons.credit_card,
+                                  size: 40,
+                                  color: Colors.grey.shade500,
+                                );
+                              },
+                            ),
+                          ),
+                        ))
                             .toList(),
                       ),
                       if (showPaymentMethodError)
                         Padding(
                           padding: const EdgeInsets.only(top: 4),
                           child: Text(
-                            "Please select a payment method",
+                            S.of(context).pleaseSelectPaymentMethod,
                             style: FontStyles.body(context,
                                 color: Colors.red, fontSize: 12),
                           ),
@@ -322,12 +324,12 @@ class PaymentRequestsScreen extends StatelessWidget {
                       const SizedBox(height: 20),
                       _buildPaymentField(
                         context,
-                        "Card Number",
+                        S.of(context).cardNumber,
                         cardNumberController,
                         Icons.credit_card,
                         false,
                         showCardError
-                            ? "Please enter a valid card number"
+                            ? S.of(context).pleaseEnterValidCardNumber
                             : null,
                         formatter: cardFormatter,
                       ),
@@ -336,11 +338,11 @@ class PaymentRequestsScreen extends StatelessWidget {
                           Expanded(
                             child: _buildPaymentField(
                               context,
-                              "Expiry (MM/YY)",
+                              S.of(context).expiryDate,
                               expiryDateController,
                               Icons.date_range,
                               false,
-                              showExpiryError ? "Enter valid date" : null,
+                              showExpiryError ? S.of(context).enterValidDate : null,
                               formatter: expiryFormatter,
                             ),
                           ),
@@ -348,11 +350,11 @@ class PaymentRequestsScreen extends StatelessWidget {
                           Expanded(
                             child: _buildPaymentField(
                               context,
-                              "CVV",
+                              S.of(context).cvv,
                               cvvController,
                               Icons.lock_outline,
                               false,
-                              showCvvError ? "Enter valid CVV" : null,
+                              showCvvError ? S.of(context).enterValidCvv : null,
                               formatter: cvvFormatter,
                             ),
                           ),
@@ -366,9 +368,9 @@ class PaymentRequestsScreen extends StatelessWidget {
                             onPressed: () =>
                                 Navigator.of(dialogContext).pop(false),
                             child: Text(
-                              "Cancel",
+                              S.of(context).cancel,
                               style:
-                                  FontStyles.body(context, color: Colors.grey),
+                              FontStyles.body(context, color: Colors.grey),
                             ),
                           ),
                           ElevatedButton(
@@ -381,8 +383,8 @@ class PaymentRequestsScreen extends StatelessWidget {
                               }
 
                               if (cardNumberController.text
-                                      .replaceAll(" ", "")
-                                      .length !=
+                                  .replaceAll(" ", "")
+                                  .length !=
                                   16) {
                                 setState(() => showCardError = true);
                                 isValid = false;
@@ -411,7 +413,7 @@ class PaymentRequestsScreen extends StatelessWidget {
                               ),
                             ),
                             child: Text(
-                              "Pay Now",
+                              S.of(context).payNow,
                               style: FontStyles.body(context,
                                   color: Colors.white,
                                   fontWeight: FontWeight.bold),
@@ -438,7 +440,7 @@ class PaymentRequestsScreen extends StatelessWidget {
           barrierDismissible: false,
           builder: (ctx) {
             loadingContext = ctx;
-            return const Dialog(
+            return Dialog(
               backgroundColor: Colors.transparent,
               elevation: 0,
               child: Center(
@@ -467,7 +469,7 @@ class PaymentRequestsScreen extends StatelessWidget {
         scaffoldMessenger.showSnackBar(
           SnackBar(
             content: Text(
-              'Payment successful! The service provider has been notified.',
+              S.of(context).paymentSuccessful,
               style: const TextStyle(color: Colors.white),
             ),
             backgroundColor: const Color(0xFF00695C),
@@ -482,7 +484,7 @@ class PaymentRequestsScreen extends StatelessWidget {
         scaffoldMessenger.showSnackBar(
           SnackBar(
             content: Text(
-              'Payment failed: $e',
+              '${S.of(context).error}: $e',
               style: const TextStyle(color: Colors.white),
             ),
             backgroundColor: Colors.red,
@@ -493,14 +495,14 @@ class PaymentRequestsScreen extends StatelessWidget {
   }
 
   Widget _buildPaymentField(
-    BuildContext context,
-    String label,
-    TextEditingController controller,
-    IconData icon,
-    bool readOnly,
-    String? errorText, {
-    MaskTextInputFormatter? formatter,
-  }) {
+      BuildContext context,
+      String label,
+      TextEditingController controller,
+      IconData icon,
+      bool readOnly,
+      String? errorText, {
+        MaskTextInputFormatter? formatter,
+      }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16.0),
       child: Column(
@@ -526,13 +528,13 @@ class PaymentRequestsScreen extends StatelessWidget {
               inputFormatters: formatter != null ? [formatter] : null,
               decoration: InputDecoration(
                 contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                 border: InputBorder.none,
                 prefixIcon: Icon(icon, color: Colors.teal.shade700),
                 hintText: label,
                 errorText: errorText,
                 errorStyle:
-                    FontStyles.body(context, color: Colors.red, fontSize: 0),
+                FontStyles.body(context, color: Colors.red, fontSize: 0),
               ),
               style: FontStyles.body(context, color: Colors.black87),
             ),
@@ -543,7 +545,7 @@ class PaymentRequestsScreen extends StatelessWidget {
               child: Text(
                 errorText,
                 style:
-                    FontStyles.body(context, color: Colors.red, fontSize: 12),
+                FontStyles.body(context, color: Colors.red, fontSize: 12),
               ),
             ),
         ],
@@ -563,8 +565,8 @@ class PaymentRequestsScreen extends StatelessWidget {
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Booking cancelled successfully'),
+        SnackBar(
+          content: Text(S.of(context).bookingCancelled),
           backgroundColor: Colors.orange,
         ),
       );
@@ -573,7 +575,7 @@ class PaymentRequestsScreen extends StatelessWidget {
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Error: $e'),
+          content: Text('${S.of(context).error}: $e'),
           backgroundColor: Colors.red,
         ),
       );

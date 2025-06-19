@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:provider/provider.dart';
 import 'base_scaffold.dart';
 import 'EmailVerificationScreen.dart';
 import 'font_styles.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geocoding/geocoding.dart' as geo;
 import '../widgets/map_picker_dialog.dart';
+import '../generated/l10n.dart';
+import '../providers/locale_provider.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -23,7 +26,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
   String? gender;
   LatLng? _pickedLocation;
   String _pickedAddress = '';
-
 
   bool isValidEmail(String email) {
     final regex = RegExp(r'^[^@]+@[^@]+\.[^@]+');
@@ -56,7 +58,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       Navigator.of(context).pop();
                     },
                     child: Text(
-                      "OK",
+                      S.of(context).ok,
                       style: FontStyles.body(context, color: Colors.blue),
                     ),
                   ),
@@ -71,38 +73,38 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   Future<void> registerUser() async {
     if (nameController.text.trim().isEmpty) {
-      showErrorDialog("Name cannot be empty");
+      showErrorDialog(S.of(context).nameCannotBeEmpty);
       return;
     }
 
     if (!isValidEmail(emailController.text.trim())) {
-      showErrorDialog("Invalid email address");
+      showErrorDialog(S.of(context).invalidEmail);
       return;
     }
 
     if (passwordController.text.trim().isEmpty) {
-      showErrorDialog("Password cannot be empty");
+      showErrorDialog(S.of(context).passwordCannotBeEmpty);
       return;
     }
 
     if (age == null) {
-      showErrorDialog("Please select your age");
+      showErrorDialog(S.of(context).pleaseSelectAge);
       return;
     }
 
     if (gender == null) {
-      showErrorDialog("Please select your gender");
+      showErrorDialog(S.of(context).pleaseSelectGender);
       return;
     }
 
     if (_pickedLocation == null || _pickedAddress.isEmpty) {
-      showErrorDialog("Please select your location");
+      showErrorDialog(S.of(context).pleaseSelectLocation);
       return;
     }
 
     try {
       UserCredential userCredential =
-          await FirebaseAuth.instance.createUserWithEmailAndPassword(
+      await FirebaseAuth.instance.createUserWithEmailAndPassword(
         email: emailController.text.trim(),
         password: passwordController.text.trim(),
       );
@@ -124,8 +126,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-            content: Text(
-                'Registration successful! A verification email has been sent.')),
+          content: Text(S.of(context).registrationSuccessful),
+        ),
       );
 
       Navigator.pushReplacement(
@@ -135,13 +137,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
       );
     } catch (e) {
       print("Firebase Auth Error: $e");
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Registration failed: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${S.of(context).registrationFailed}: $e'),
+        ),
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final localeProvider = Provider.of<LocaleProvider>(context);
+    final currentLanguage = localeProvider.locale.languageCode;
+
     return BaseScaffold(
       child: Center(
         child: SingleChildScrollView(
@@ -151,11 +159,23 @@ class _RegisterScreenState extends State<RegisterScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
+
+                Center(
+                  child: Text(
+                    S.of(context).register,
+                    style: FontStyles.heading(context,
+                        fontSize: 28, color: Colors.white),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+                const SizedBox(height: 24),
+
+
                 TextField(
                   controller: nameController,
                   style: FontStyles.body(context, color: Colors.white),
                   decoration: InputDecoration(
-                    labelText: "Name",
+                    labelText: S.of(context).name,
                     labelStyle: TextStyle(color: Colors.white70),
                     filled: false,
                     border: OutlineInputBorder(
@@ -165,11 +185,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
                 ),
                 const SizedBox(height: 16),
+
+
                 TextField(
                   controller: emailController,
                   style: FontStyles.body(context, color: Colors.white),
                   decoration: InputDecoration(
-                    labelText: "Email",
+                    labelText: S.of(context).email,
                     labelStyle: TextStyle(color: Colors.white70),
                     filled: false,
                     border: OutlineInputBorder(
@@ -179,11 +201,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
                 ),
                 const SizedBox(height: 16),
+
+
                 TextField(
                   controller: passwordController,
                   style: FontStyles.body(context, color: Colors.white),
                   decoration: InputDecoration(
-                    labelText: "Password",
+                    labelText: S.of(context).password,
                     labelStyle: TextStyle(color: Colors.white70),
                     filled: false,
                     border: OutlineInputBorder(
@@ -194,12 +218,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   obscureText: true,
                 ),
                 const SizedBox(height: 16),
+
+
                 Card(
                   color: Colors.white12,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   child: ListTile(
                     title: Text(
-                      _pickedLocation == null ? "Choose your location" : _pickedAddress,
+                      _pickedLocation == null ? S.of(context).chooseLocation : _pickedAddress,
                       style: FontStyles.body(context, color: Colors.white),
                     ),
                     trailing: const Icon(Icons.map, color: Colors.white),
@@ -232,13 +258,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     },
                   ),
                 ),
-
                 const SizedBox(height: 16),
+
+
                 Row(
                   mainAxisAlignment: MainAxisAlignment.start,
                   children: [
                     Text(
-                      age != null ? "Age: $age" : "Age: Not selected",
+                      age != null ? "${S.of(context).age}: $age" : "${S.of(context).age}: ${S.of(context).notSelected}",
                       style: FontStyles.body(context, color: Colors.white),
                     ),
                     const SizedBox(width: 8),
@@ -290,8 +317,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ],
                 ),
                 const SizedBox(height: 16),
+
+
                 Text(
-                  "Gender",
+                  S.of(context).gender,
                   style: FontStyles.body(context, color: Colors.white70),
                 ),
                 DropdownButton<String>(
@@ -304,7 +333,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     height: 2,
                     color: Colors.grey,
                   ),
-                  items: <String>['Male', 'Female']
+                  items: <String>[S.of(context).male, S.of(context).female]
                       .map<DropdownMenuItem<String>>((String value) {
                     return DropdownMenuItem<String>(
                       value: value,
@@ -320,11 +349,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     });
                   },
                   hint: Text(
-                    'Select Gender',
+                    S.of(context).selectGender,
                     style: FontStyles.body(context, color: Colors.white70),
                   ),
                 ),
                 const SizedBox(height: 20),
+
+
                 Center(
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
@@ -340,8 +371,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     onPressed: () async {
                       await registerUser();
                     },
-                    child: const Text(
-                      "Sign Up",
+                    child: Text(
+                      S.of(context).signUp,
                       style: TextStyle(color: Colors.white),
                     ),
                   ),

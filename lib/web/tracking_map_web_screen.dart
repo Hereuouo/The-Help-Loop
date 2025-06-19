@@ -3,11 +3,12 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:thehelploop/screens/base_scaffold.dart';
+import 'package:the_help_loop_master/screens/base_scaffold.dart';
 
 import 'dart:ui_web' as ui_web;
 import 'dart:html' as html;
 
+import '../generated/l10n.dart';
 import '../models/tracking_map_interface.dart';
 import 'js_directions_web.dart';
 
@@ -27,7 +28,7 @@ class _TrackingMapWebScreenState extends State<TrackingMapWebScreen> {
   void initState() {
     super.initState();
 
-    // Register the HTML view for the map
+
     ui_web.platformViewRegistry.registerViewFactory(
       'map-canvas',
           (int viewId) => html.DivElement()
@@ -36,7 +37,7 @@ class _TrackingMapWebScreenState extends State<TrackingMapWebScreen> {
         ..style.height = '100%',
     );
 
-    // Listen for distance updates from JavaScript
+
     html.window.onMessage.listen((event) {
       final data = event.data;
       if (data['type'] == 'distanceUpdate') {
@@ -73,12 +74,12 @@ class _TrackingMapWebScreenState extends State<TrackingMapWebScreen> {
         });
       } else {
         setState(() {
-          _errorMessage = 'Destination location not found';
+          _errorMessage = S.of(context).destinationLocationNotFound;
         });
       }
     } catch (e) {
       setState(() {
-        _errorMessage = 'Error fetching location: $e';
+        _errorMessage = '${S.of(context).errorFetchingLocation}: $e';
       });
     }
 
@@ -105,7 +106,7 @@ class _TrackingMapWebScreenState extends State<TrackingMapWebScreen> {
     final destination = _destination;
 
     return BaseScaffold(
-      title: 'Track Distance',
+      title: S.of(context).trackDistance,
       child: destination == null
           ? const Center(child: CircularProgressIndicator())
           : Stack(
@@ -129,7 +130,7 @@ class _TrackingMapWebScreenState extends State<TrackingMapWebScreen> {
                 textAlign: TextAlign.center,
               )
                   : Text(
-                'Distance: ${_distanceInKm.toStringAsFixed(2)} km',
+                '${S.of(context).distance}: ${_distanceInKm.toStringAsFixed(2)} km',
                 style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,

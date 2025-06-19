@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import '../screens/font_styles.dart';
+import '../generated/l10n.dart';
 
 Future<bool?> showConfirmDialog({
   required BuildContext context,
   required String title,
   required String message,
-  String cancelText = 'Cancel',
-  String confirmText = 'Confirm',
+  String? cancelText,
+  String? confirmText,
   Color confirmColor = Colors.redAccent,
 }) {
   return showDialog<bool>(
@@ -36,7 +37,10 @@ Future<bool?> showConfirmDialog({
               children: [
                 TextButton(
                   onPressed: () => Navigator.pop(context, false),
-                  child: Text(cancelText, style: FontStyles.body(context, color: Colors.deepPurple)),
+                  child: Text(
+                      cancelText ?? S.of(context).cancel,
+                      style: FontStyles.body(context, color: Colors.deepPurple)
+                  ),
                 ),
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
@@ -45,7 +49,10 @@ Future<bool?> showConfirmDialog({
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                   onPressed: () => Navigator.pop(context, true),
-                  child: Text(confirmText, style: FontStyles.body(context, color: Colors.white)),
+                  child: Text(
+                      confirmText ?? S.of(context).confirm,
+                      style: FontStyles.body(context, color: Colors.white)
+                  ),
                 ),
               ],
             )

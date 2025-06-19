@@ -1,7 +1,11 @@
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:thehelploop/screens/post_verification_screen.dart';
+import 'package:provider/provider.dart';
+import 'package:the_help_loop_master/screens/post_verification_screen.dart';
+import 'package:the_help_loop_master/generated/l10n.dart';
+import 'package:the_help_loop_master/providers/locale_provider.dart';
 import 'base_scaffold.dart';
 import 'font_styles.dart';
 import 'EmailVerificationScreen.dart';
@@ -20,14 +24,12 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> loginUser() async {
     try {
-
       await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: emailController.text.trim(),
         password: passwordController.text.trim(),
       );
 
       User? user = FirebaseAuth.instance.currentUser;
-
 
       if (user != null && !user.emailVerified) {
         Navigator.pushReplacement(
@@ -37,14 +39,13 @@ class _LoginScreenState extends State<LoginScreen> {
         return;
       }
 
-
       if (user != null) {
-        final doc =
-        await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
-
+        final doc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .get();
 
         final List<dynamic>? skills = doc.data()?['skills'];
-
 
         bool hasSubcollection = false;
         if (skills == null || skills.isEmpty) {
@@ -57,16 +58,15 @@ class _LoginScreenState extends State<LoginScreen> {
           hasSubcollection = sub.docs.isNotEmpty;
         }
 
-        final bool hasSkills = (skills != null && skills.isNotEmpty) || hasSubcollection;
+        final bool hasSkills =
+            (skills != null && skills.isNotEmpty) || hasSubcollection;
 
         if (!hasSkills) {
-
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(builder: (_) => const PostVerificationScreen()),
           );
         } else {
-
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(builder: (_) => const HomeScreen()),
@@ -76,11 +76,20 @@ class _LoginScreenState extends State<LoginScreen> {
     } catch (e) {
       print("Login error: $e");
 
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(S.of(context).loginError),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final localeProvider = Provider.of<LocaleProvider>(context);
+    final currentLanguage = localeProvider.locale.languageCode;
+
     return BaseScaffold(
       child: Center(
         child: SingleChildScrollView(
@@ -88,18 +97,21 @@ class _LoginScreenState extends State<LoginScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+
               Text(
-                "Login",
+                S.of(context).login,
                 style: FontStyles.heading(context,
                     fontSize: 32, color: Colors.white),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 32),
+
+
               TextField(
                 controller: emailController,
                 style: FontStyles.body(context, color: Colors.white),
                 decoration: InputDecoration(
-                  labelText: "Email",
+                  labelText: S.of(context).email,
                   labelStyle: FontStyles.body(context, color: Colors.white70),
                   filled: true,
                   fillColor: Colors.white12,
@@ -108,12 +120,14 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ),
               const SizedBox(height: 16),
+
+
               TextField(
                 controller: passwordController,
                 obscureText: true,
                 style: FontStyles.body(context, color: Colors.white),
                 decoration: InputDecoration(
-                  labelText: "Password",
+                  labelText: S.of(context).password,
                   labelStyle: FontStyles.body(context, color: Colors.white70),
                   filled: true,
                   fillColor: Colors.white12,
@@ -122,6 +136,8 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ),
               const SizedBox(height: 24),
+
+
               ElevatedButton(
                 onPressed: loginUser,
                 style: ElevatedButton.styleFrom(
@@ -132,7 +148,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
                 child: Text(
-                  "Login",
+                  S.of(context).loginButton,
                   style: FontStyles.body(context,
                       fontSize: 18, color: Colors.white),
                 ),

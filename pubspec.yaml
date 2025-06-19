@@ -1,4 +1,4 @@
-name: thehelploop
+name: the_help_loop_master
 description: "A new Flutter project."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
@@ -19,7 +19,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 version: 1.0.0+1
 
 environment:
-  sdk: '>=3.4.0 <4.0.0'
+  sdk: '>=3.3.0 <4.0.0'
 
 # Dependencies specify other packages that your package needs in order to work.
 # To automatically upgrade your package dependencies to the latest versions
@@ -30,65 +30,62 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.6
-  firebase_auth: ^5.5.4
-  firebase_core: ^3.13.1
+  firebase_auth: ^4.17.5
+  firebase_core: ^2.25.4
   provider: ^6.0.2
-  cloud_firestore: ^5.6.8
-  cloud_functions: ^5.5.1
-  firebase_storage: ^12.4.6
+  cloud_firestore: ^4.15.5
+  cloud_functions: ^4.3.1
+  firebase_storage: ^11.6.3
   intl: 0.20.2
-  image_picker: ^1.1.2
-  flutter_localizations:
-    sdk: flutter
-  firebase_app_check: ^0.3.2+6
+  image_picker: ^0.8.5+3
+  firebase_app_check: ^0.2.2+7
   http: ^1.4.0
   google_api_availability: ^5.0.1
   geocoding: ^3.0.0
   google_maps_flutter: ^2.12.2
-  geolocator: ^14.0.0
+  geolocator: ^12.0.0
   flutter_polyline_points: ^2.1.0
   flutter_google_maps_webservices: ^1.1.1
   js: ^0.6.7
   mask_text_input_formatter: ^2.9.0
+  shared_preferences: ^2.5.2
+
+
+
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
   # activated in the `analysis_options.yaml` file located at the root of your
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
-  flutter_lints: ^5.0.0
-  lints: ^5.1.1
-
+  flutter_lints: ^3.0.0
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
 
 # The following section is specific to Flutter packages.
 flutter:
-
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+  generate: true
 
   # To add assets to your application, add an assets section, like this:
   assets:
-
-    - lib/assets/images/BigLettersLogo.png
-    - lib/assets/images/BlueBackground.jpg
-    - lib/assets/images/HandUpwards.png
-    - lib/assets/images/NoTextLogo.png
-    - lib/assets/images/PurpleBackground.jpg
-    - lib/assets/images/WhiteLettersLogo.png
+    - lib/assets/images/
+    - lib/l10n/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/assets-and-images/#resolution-aware
@@ -117,3 +114,10 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/custom-fonts/#from-packages
+flutter_intl:
+  enabled: true
+  class_name: S
+  main_locale: en
+  arb-dir: lib/l10n
+  output-dir: lib/generated
+  use_deferred_loading: false

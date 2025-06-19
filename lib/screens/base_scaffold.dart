@@ -1,3 +1,4 @@
+// base_scaffold.dart
 import 'package:flutter/material.dart';
 import 'font_styles.dart';
 
@@ -56,4 +57,3 @@ class BaseScaffold extends StatelessWidget {
     );
   }
 }
-

@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geocoding/geocoding.dart' as geo;
+import 'package:the_help_loop_master/generated/l10n.dart';
 
 import '../models/booking.dart';
 import '../widgets/map_picker_dialog.dart';
@@ -32,11 +33,11 @@ class BookingScreen extends StatelessWidget {
         }
 
         final data = snap.data!.data() as Map<String, dynamic>;
-        final name = data['name'] ?? 'Unknown';
+        final name = data['name'] ?? S.of(context).unknown;
         final skills = data['skills'] ?? [];
 
         return BaseScaffold(
-          title: 'Booking Skill Details',
+          title: S.of(context).bookingSkillDetails,
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(24),
             child: Column(
@@ -47,14 +48,14 @@ class BookingScreen extends StatelessWidget {
                         fontSize: 28, color: Colors.white)),
                 const SizedBox(height: 16),
                 if (requestedSkill != null) ...[
-                  Text('Requested Skill:',
+                  Text(S.of(context).requestedSkill,
                       style: FontStyles.body(context, color: Colors.white70)),
                   Text(requestedSkill!,
                       style: FontStyles.heading(context,
                           fontSize: 20, color: Colors.amberAccent)),
                   const Divider(height: 32, color: Colors.white24),
                 ],
-                Text('All Skills:',
+                Text(S.of(context).allSkills,
                     style: FontStyles.body(context, color: Colors.white70)),
                 const SizedBox(height: 8),
                 Wrap(
@@ -63,24 +64,24 @@ class BookingScreen extends StatelessWidget {
                   children: skills
                       .map<Widget>(
                         (s) => Chip(
-                          label: Text(s.toString()),
-                          backgroundColor: Colors.white,
-                          labelStyle:
-                              FontStyles.body(context, color: Colors.black),
-                        ),
-                      )
+                      label: Text(s.toString()),
+                      backgroundColor: Colors.white,
+                      labelStyle:
+                      FontStyles.body(context, color: Colors.black),
+                    ),
+                  )
                       .toList(),
                 ),
                 const SizedBox(height: 40),
                 Center(
                   child: CustomElevatedButton(
                       icon: Icons.calendar_today_outlined,
-                      label: 'Book Service',
+                      label: S.of(context).bookService,
                       onPressed: () => _showBookingDialog(
-                            context: context,
-                            toUserId: userId,
-                            requestedSkill: requestedSkill ?? '',
-                          ),
+                        context: context,
+                        toUserId: userId,
+                        requestedSkill: requestedSkill ?? '',
+                      ),
                       style: FontStyles.body(context,
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
@@ -100,7 +101,7 @@ class BookingScreen extends StatelessWidget {
     required String requestedSkill,
   }) {
     DateTime? chosenDate;
-    String duration = 'Day';
+    String duration = 'day';
     LatLng? pickedLoc;
     String addressTxt = '';
     final notesCtrl = TextEditingController();
@@ -111,7 +112,7 @@ class BookingScreen extends StatelessWidget {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         backgroundColor: const Color(0xFFECEAFF),
         title: Center(
-            child: Text('Book Service',
+            child: Text(S.of(context).bookService,
                 style: FontStyles.heading(context,
                     fontSize: 22, color: Colors.teal.shade900))),
         content: StatefulBuilder(
@@ -122,10 +123,10 @@ class BookingScreen extends StatelessWidget {
                 ListTile(
                   title: Text(
                     chosenDate == null
-                        ? 'Choose start date'
+                        ? S.of(context).chooseStartDate
                         : '${chosenDate!.toLocal()}'.split(' ')[0],
                     style:
-                        FontStyles.body(context, color: Colors.teal.shade900),
+                    FontStyles.body(context, color: Colors.teal.shade900),
                   ),
                   trailing: const Icon(Icons.calendar_month),
                   onTap: () async {
@@ -140,23 +141,28 @@ class BookingScreen extends StatelessWidget {
                   },
                 ),
                 DropdownButtonFormField<String>(
-                    decoration: const InputDecoration(
-                      labelText: 'Duration',
-                      labelStyle: TextStyle(fontSize: 19),
-                    ),
-                    value: duration,
-                    items: const [
-                      DropdownMenuItem(value: 'Day', child: Text('Day')),
-                      DropdownMenuItem(value: '2 Days', child: Text('2 Days')),
-                      DropdownMenuItem(value: 'Week', child: Text('Week')),
-                      DropdownMenuItem(value: 'Month', child: Text('Month')),
-                    ],
-                    onChanged: (v) => duration = v ?? 'Day',
-                    style: FontStyles.heading(context,
-                        fontSize: 16, color: Colors.teal.shade900)),
+                  decoration: InputDecoration(
+                    labelText: S.of(context).duration,
+                    labelStyle: const TextStyle(fontSize: 19),
+                  ),
+                  value: duration,
+                  items: [
+                    DropdownMenuItem(
+                        value: 'day', child: Text(S.of(context).day)),
+                    DropdownMenuItem(
+                        value: 'two_days', child: Text(S.of(context).twoDays)),
+                    DropdownMenuItem(
+                        value: 'week', child: Text(S.of(context).week)),
+                    DropdownMenuItem(
+                        value: 'month', child: Text(S.of(context).month)),
+                  ],
+                  onChanged: (v) => setState(() => duration = v ?? 'day'),
+                  style: FontStyles.heading(context,
+                      fontSize: 16, color: Colors.teal.shade900),
+                ),
                 ListTile(
-                  title:
-                      Text(pickedLoc == null ? 'Choose location' : addressTxt),
+                  title: Text(
+                      pickedLoc == null ? S.of(context).chooseLocation : addressTxt),
                   trailing: const Icon(Icons.location_on),
                   onTap: () async {
                     final LatLng? res = await showDialog(
@@ -182,8 +188,7 @@ class BookingScreen extends StatelessWidget {
                 ),
                 TextField(
                   controller: notesCtrl,
-                  decoration:
-                      const InputDecoration(labelText: 'Notes (optional)'),
+                  decoration: InputDecoration(labelText: S.of(context).notes),
                   maxLines: 2,
                 ),
               ],
@@ -192,13 +197,13 @@ class BookingScreen extends StatelessWidget {
         ),
         actions: [
           TextButton(
-            child: Text('Cancel',
+            child: Text(S.of(context).cancel,
                 style: FontStyles.body(context, color: Colors.deepPurple)),
             onPressed: () => Navigator.pop(ctx),
           ),
           ElevatedButton.icon(
             icon: const Icon(Icons.check_circle_outline, color: Colors.white),
-            label: Text('Confirm',
+            label: Text(S.of(context).confirm,
                 style: FontStyles.body(context, color: Colors.white)),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.teal.shade700,
@@ -209,7 +214,7 @@ class BookingScreen extends StatelessWidget {
             onPressed: () async {
               if (chosenDate == null || pickedLoc == null) {
                 ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                    content: Text('Complete all fields please',
+                    content: Text(S.of(context).completeAllFields,
                         style: FontStyles.body(context, color: Colors.white))));
                 return;
               }
@@ -244,7 +249,7 @@ class BookingScreen extends StatelessWidget {
     final current = FirebaseAuth.instance.currentUser;
     if (current == null) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('You must login first.',
+          content: Text(S.of(context).mustLoginFirst,
               style: FontStyles.body(context, color: Colors.white))));
       return;
     }
@@ -256,7 +261,7 @@ class BookingScreen extends StatelessWidget {
     final toGeo = providerDoc.data()?['location'];
     if (toGeo == null) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Provider location unavailable.',
+          content: Text(S.of(context).providerLocationUnavailable,
               style: FontStyles.body(context, color: Colors.white))));
       return;
     }
@@ -287,12 +292,13 @@ class BookingScreen extends StatelessWidget {
           .collection('bookings')
           .add(booking.toMap());
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Booking sent ✅',
+          content: Text(S.of(context).bookingSent,
               style: FontStyles.body(context, color: Colors.white))));
       Navigator.pop(context);
     } catch (e) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Failed: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('${S.of(context).bookingFailed}: $e',
+              style: FontStyles.body(context, color: Colors.white))));
     }
   }
 

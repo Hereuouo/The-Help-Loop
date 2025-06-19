@@ -1,11 +1,13 @@
-import 'dart:math' as math;
-
-import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
 import 'package:google_api_availability/google_api_availability.dart';
-import 'package:thehelploop/screens/booking_screen.dart';
+import 'package:provider/provider.dart';
+import 'package:the_help_loop_master/generated/l10n.dart';
+import 'package:the_help_loop_master/providers/locale_provider.dart';
+import 'package:the_help_loop_master/screens/booking_screen.dart';
+import 'dart:math' as math;
 
 import '../services/backfill_service.dart';
 import '../widgets/confirm_dialog.dart';
@@ -14,8 +16,6 @@ import 'font_styles.dart';
 import 'incoming_requests_screen.dart';
 import 'login_screen.dart';
 import 'profile_screen.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -36,8 +36,16 @@ class _HomeScreenState extends State<HomeScreen>
   bool isMenuOpen = false;
   bool _isLoading = false;
   bool _hasSearched = false;
+  bool _showFilters = false;
   String? _userName;
+  GeoPoint? _myLocation;
 
+  RangeValues _ageRange = const RangeValues(18, 65);
+  String? _selectedGender;
+  double _maxDistance = 50;
+  bool _onlyWithLocation = false;
+
+  List<Map<String, dynamic>> _allSearchResults = [];
   List<Map<String, dynamic>> _exchangeMatches = [];
   List<Map<String, dynamic>> _paidMatches = [];
 
@@ -45,6 +53,7 @@ class _HomeScreenState extends State<HomeScreen>
   void initState() {
     super.initState();
     _fetchUserName();
+    _fetchMyLocation();
     _runBackfillOnce();
     _checkPlayServices();
   }
@@ -67,7 +76,23 @@ class _HomeScreenState extends State<HomeScreen>
 
     if (doc.exists) {
       setState(() {
-        _userName = doc['name'] ?? 'Unknown';
+        _userName = doc['name'] ?? S.of(context).unknown;
+      });
+    }
+  }
+
+  Future<void> _fetchMyLocation() async {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) return;
+
+    final doc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(currentUser.uid)
+        .get();
+
+    if (doc.exists && doc.data()?['location'] != null) {
+      setState(() {
+        _myLocation = doc.data()?['location'] as GeoPoint;
       });
     }
   }
@@ -82,25 +107,142 @@ class _HomeScreenState extends State<HomeScreen>
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
             content: Text(
-                'Google Play Services غير متوفّر (status: $availability)')),
+                '${S.of(context).playServicesUnavailable} (status: $availability)')),
       );
     }
+  }
+
+  double _calculateDistance(GeoPoint point1, GeoPoint point2) {
+    const double earthRadius = 6371;
+
+    double lat1Rad = point1.latitude * (math.pi / 180);
+    double lat2Rad = point2.latitude * (math.pi / 180);
+    double deltaLatRad = (point2.latitude - point1.latitude) * (math.pi / 180);
+    double deltaLngRad =
+        (point2.longitude - point1.longitude) * (math.pi / 180);
+
+    double a = math.sin(deltaLatRad / 2) * math.sin(deltaLatRad / 2) +
+        math.cos(lat1Rad) *
+            math.cos(lat2Rad) *
+            math.sin(deltaLngRad / 2) *
+            math.sin(deltaLngRad / 2);
+    double c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
+
+    return earthRadius * c;
+  }
+
+  bool _passesFilters(Map<String, dynamic> user) {
+    int? userAge = user['age'];
+    if (userAge != null) {
+      if (userAge < _ageRange.start || userAge > _ageRange.end) {
+        return false;
+      }
+    }
+
+    if (_selectedGender != null && _selectedGender!.isNotEmpty) {
+      String? userGender = user['gender'];
+      if (userGender != _selectedGender) {
+        return false;
+      }
+    }
+
+    if (_onlyWithLocation || _maxDistance < 50) {
+      GeoPoint? userLocation = user['location'];
+      if (userLocation == null) {
+        return !_onlyWithLocation;
+      }
+
+      if (_myLocation != null) {
+        double distance = _calculateDistance(_myLocation!, userLocation);
+        if (distance > _maxDistance) {
+          return false;
+        }
+
+        user['distance'] = distance;
+      }
+    }
+
+    return true;
+  }
+
+  void _applyFiltersToResults() {
+    if (_allSearchResults.isEmpty) return;
+
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) return;
+
+    final List<Map<String, dynamic>> filteredUsers = _allSearchResults
+        .where((user) => user['id'] != currentUser.uid && _passesFilters(user))
+        .toList();
+
+    if (_myLocation != null) {
+      filteredUsers.sort((a, b) {
+        double distanceA = a['distance'] ?? double.infinity;
+        double distanceB = b['distance'] ?? double.infinity;
+        return distanceA.compareTo(distanceB);
+      });
+    }
+
+    final List<Map<String, dynamic>> exchange = [];
+    final List<Map<String, dynamic>> paid = [];
+
+    for (final user in filteredUsers) {
+      final theirHistory =
+          List<String>.from(user['searchHistory'] ?? const <String>[]);
+      bool mutual = false;
+
+      if (user['mySkills'] != null) {
+        final mySkills = List<String>.from(user['mySkills']);
+        for (final historyItem in theirHistory) {
+          for (final mySkill in mySkills) {
+            if (_isSimpleMatch(historyItem, mySkill)) {
+              mutual = true;
+              break;
+            }
+          }
+          if (mutual) break;
+        }
+      }
+
+      if (mutual) {
+        exchange.add(user);
+      } else if (user['willingToPay'] == true) {
+        paid.add(user);
+      }
+    }
+
+    setState(() {
+      _exchangeMatches = exchange;
+      _paidMatches = paid;
+    });
   }
 
   Future<void> _searchSkills() async {
     final currentUser = FirebaseAuth.instance.currentUser;
     if (currentUser == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('يجب تسجيل الدخول أولاً')),
+        SnackBar(content: Text(S.of(context).mustLoginFirst)),
       );
       return;
     }
 
     final query = _searchController.text.trim();
-    if (query.length < 2 ||
-        !RegExp(r'^[\p{L}\p{N}\s]+$', unicode: true).hasMatch(query)) {
+    if (query.length < 2) {
       setState(() {
         _hasSearched = true;
+        _allSearchResults.clear();
+        _exchangeMatches.clear();
+        _paidMatches.clear();
+      });
+      return;
+    }
+
+    if (!RegExp(r'^[\p{L}\p{N}\s\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]+$',
+            unicode: true)
+        .hasMatch(query)) {
+      setState(() {
+        _hasSearched = true;
+        _allSearchResults.clear();
         _exchangeMatches.clear();
         _paidMatches.clear();
       });
@@ -110,198 +252,183 @@ class _HomeScreenState extends State<HomeScreen>
     setState(() {
       _hasSearched = true;
       _isLoading = true;
+      _allSearchResults.clear();
       _exchangeMatches.clear();
       _paidMatches.clear();
     });
 
     try {
-      final callable = FirebaseFunctions.instance
-          .httpsCallable('ext-firestore-vector-search-queryCallable');
+      List<String> vectorSearchIds = [];
+      List<Map<String, dynamic>> searchResults = [];
 
-      final callResult = await callable.call({
-        'query': query,
-        'limit': 20,
-      });
+      try {
+        final callable = FirebaseFunctions.instance
+            .httpsCallable('ext-firestore-vector-search-queryCallable');
 
-      final List<String> ids = List<String>.from(callResult.data['ids'] ?? []);
-      if (ids.isEmpty) {
-        setState(() => _isLoading = false);
-        return;
+        final callResult = await callable.call({
+          'query': query,
+          'collection': 'users',
+          'input_field': 'input',
+          'embedding_field': 'embedding',
+          'limit': 15,
+        });
+
+        vectorSearchIds = List<String>.from(callResult.data['ids'] ?? []);
+        print('Vector search found IDs: $vectorSearchIds');
+      } catch (vectorError) {
+        print(
+            'Vector search failed, proceeding with fallback. Error: $vectorError');
       }
 
-      final fs = FirebaseFirestore.instance;
-      final snapshot = await fs
-          .collection('users')
-          .where(FieldPath.documentId, whereIn: ids)
-          .get();
+      if (vectorSearchIds.isNotEmpty) {
+        final snapshot = await FirebaseFirestore.instance
+            .collection('users')
+            .where(FieldPath.documentId, whereIn: vectorSearchIds)
+            .get();
 
-      final Map<String, Map<String, dynamic>> tmp = {
-        for (var doc in snapshot.docs) doc.id: doc.data()..['id'] = doc.id
-      };
-      final List<Map<String, dynamic>> ordered =
-          ids.where(tmp.containsKey).map((id) => tmp[id]!).toList();
+        final Map<String, Map<String, dynamic>> usersMap = {
+          for (var doc in snapshot.docs) doc.id: doc.data()..['id'] = doc.id
+        };
 
-      await fs.collection('users').doc(currentUser.uid).update({
-        'searchHistory': FieldValue.arrayUnion([query])
-      });
+        searchResults = vectorSearchIds
+            .where(usersMap.containsKey)
+            .map((id) => usersMap[id]!)
+            .toList();
+      } else {
+        print('Executing simple text search fallback...');
+        final allUsersSnapshot = await FirebaseFirestore.instance
+            .collection('users')
+            .limit(200)
+            .get();
 
-      final List<Map<String, dynamic>> filteredUsers = [];
-      for (final user in ordered) {
-        if (user['id'] == currentUser.uid) continue;
-
-        final theirSkills =
-            List<String>.from(user['skills'] ?? const <String>[]);
-        bool isRelevant = false;
-
-        for (final skill in theirSkills) {
-          if (await _isSemanticallySimilar(query, skill, threshold: 0.7)) {
-            isRelevant = true;
-            break;
-          }
-        }
-
-        if (isRelevant) {
-          filteredUsers.add(user);
-        }
-      }
-
-      final mySkills = List<String>.from(
-          (await fs.collection('users').doc(currentUser.uid).get())
-                  .data()?['skills'] ??
-              []);
-
-      final List<Map<String, dynamic>> exchange = [];
-      final List<Map<String, dynamic>> paid = [];
-
-      for (final user in filteredUsers) {
-        final theirHistory =
-            List<String>.from(user['searchHistory'] ?? const <String>[]);
-        bool mutual = false;
-
-        for (final h in theirHistory) {
-          for (final s in mySkills) {
-            if (await _isSemanticallySimilar(h, s, threshold: 0.7)) {
-              mutual = true;
+        final normalizedQuery = _normalizeText(query);
+        for (final doc in allUsersSnapshot.docs) {
+          final user = doc.data()..['id'] = doc.id;
+          final theirSkills = List<String>.from(user['skills'] ?? []);
+          for (final skill in theirSkills) {
+            if (_isSimpleMatch(normalizedQuery, skill)) {
+              searchResults.add(user);
               break;
             }
           }
-          if (mutual) break;
         }
+      }
 
-        if (mutual) {
-          exchange.add(user);
-        } else if (user['willingToPay'] == true) {
-          paid.add(user);
-        }
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(currentUser.uid)
+          .update({
+        'searchHistory': FieldValue.arrayUnion([query])
+      });
+
+      final mySkillsDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(currentUser.uid)
+          .get();
+      final mySkills = List<String>.from(mySkillsDoc.data()?['skills'] ?? []);
+
+      for (final user in searchResults) {
+        user['mySkills'] = mySkills;
       }
 
       setState(() {
-        _exchangeMatches = exchange;
-        _paidMatches = paid;
+        _allSearchResults = searchResults;
         _isLoading = false;
       });
+
+      _applyFiltersToResults();
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('فشل البحث: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('${S.of(context).searchFailed}: $e')));
       }
     }
   }
 
-  Future<bool> _isSemanticallySimilar(String text1, String text2,
-      {double threshold = 0.7}) async {
-    try {
-      final similarity = await _calculateSimilarity(text1, text2);
-      return similarity >= threshold;
-    } catch (e) {
-      return text1.toLowerCase().contains(text2.toLowerCase()) ||
-          text2.toLowerCase().contains(text1.toLowerCase());
+  bool _isSimpleMatch(String searchTerm, String skill) {
+    final normalizedSearch = _normalizeText(searchTerm);
+    final normalizedSkill = _normalizeText(skill);
+
+    if (normalizedSkill.contains(normalizedSearch) ||
+        normalizedSearch.contains(normalizedSkill)) {
+      return true;
     }
+
+    final searchRoot = _getApproximateRoot(normalizedSearch);
+    final skillRoot = _getApproximateRoot(normalizedSkill);
+
+    if (searchRoot.isNotEmpty && skillRoot.isNotEmpty) {
+      if (skillRoot.contains(searchRoot) || searchRoot.contains(skillRoot)) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
-  Future<double> _calculateSimilarity(String text1, String text2) async {
-    final apiKey = 'AlzaSyD30YFEm9x2w99V5SPtFideT7Qjiy40VHM';
-    final url =
-        'https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent?key=$apiKey';
-
-    final response1 = await http.post(
-      Uri.parse(url),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({
-        'content': {
-          'parts': [
-            {'text': text1}
-          ]
-        },
-      }),
-    );
-
-    if (response1.statusCode != 200) {
-      throw Exception('Failed to get embedding for text1: ${response1.body}');
+  String _getApproximateRoot(String text) {
+    if (RegExp(r'[\u0600-\u06FF]').hasMatch(text)) {
+      return text;
     }
 
-    final data1 = jsonDecode(response1.body);
-    final embedding1 = List<double>.from(data1['embedding']['values']);
+    const suffixes = ['ing', 'er', 's', 'es', 'ed', 'or', 'tion'];
+    var words = text.split(' ');
+    var rootWords = <String>[];
 
-    final response2 = await http.post(
-      Uri.parse(url),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({
-        'content': {
-          'parts': [
-            {'text': text2}
-          ]
-        },
-      }),
-    );
+    for (var word in words) {
+      if (word.length < 5) {
+        rootWords.add(word);
+        continue;
+      }
 
-    if (response2.statusCode != 200) {
-      throw Exception('Failed to get embedding for text2: ${response2.body}');
+      String bestMatch = word;
+      for (var suffix in suffixes) {
+        if (word.endsWith(suffix)) {
+          bestMatch = word.substring(0, word.length - suffix.length);
+          break;
+        }
+      }
+      rootWords.add(bestMatch);
     }
 
-    final data2 = jsonDecode(response2.body);
-    final embedding2 = List<double>.from(data2['embedding']['values']);
-
-    return _cosineSimilarity(embedding1, embedding2);
+    return rootWords.join(' ');
   }
 
-  double _cosineSimilarity(List<double> vector1, List<double> vector2) {
-    if (vector1.length != vector2.length) {
-      throw Exception('Vectors must have the same length');
-    }
-
-    double dotProduct = 0.0;
-    double norm1 = 0.0;
-    double norm2 = 0.0;
-
-    for (int i = 0; i < vector1.length; i++) {
-      dotProduct += vector1[i] * vector2[i];
-      norm1 += vector1[i] * vector1[i];
-      norm2 += vector2[i] * vector2[i];
-    }
-
-    norm1 = math.sqrt(norm1);
-    norm2 = math.sqrt(norm2);
-
-    if (norm1 == 0 || norm2 == 0) {
-      return 0.0;
-    }
-
-    return dotProduct / (norm1 * norm2);
+  String _normalizeText(String text) {
+    return text
+        .toLowerCase()
+        .trim()
+        .replaceAll(RegExp(r'[\u064B-\u0652\u0670\u0640]'), '')
+        .replaceAll('أ', 'ا')
+        .replaceAll('إ', 'ا')
+        .replaceAll('آ', 'ا')
+        .replaceAll('ة', 'ه')
+        .replaceAll('ى', 'ي')
+        .replaceAll(RegExp(r'\s+'), ' ');
   }
 
   @override
   Widget build(BuildContext context) {
+    final localeProvider = Provider.of<LocaleProvider>(context);
+    final currentLanguage = localeProvider.locale.languageCode;
+
     return BaseScaffold(
       appBar: AppBar(
-        title: Text('Home',
+        title: Text(S.of(context).home,
             style:
                 FontStyles.heading(context, fontSize: 24, color: Colors.white)),
         backgroundColor: Colors.transparent,
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
         actions: [
+          IconButton(
+            icon: Icon(
+              _showFilters ? Icons.filter_list : Icons.filter_list_off,
+              color: Colors.white,
+            ),
+            onPressed: () => setState(() => _showFilters = !_showFilters),
+          ),
           StreamBuilder<QuerySnapshot>(
             stream: FirebaseFirestore.instance
                 .collection('bookings')
@@ -360,6 +487,7 @@ class _HomeScreenState extends State<HomeScreen>
           Column(
             children: [
               _buildSearchBar(),
+              if (_showFilters) _buildFiltersPanel(),
               Expanded(child: _buildResultsArea()),
             ],
           ),
@@ -379,7 +507,7 @@ class _HomeScreenState extends State<HomeScreen>
               controller: _searchController,
               style: const TextStyle(color: Colors.white),
               decoration: InputDecoration(
-                hintText: 'Search for skills…',
+                hintText: S.of(context).searchSkills,
                 hintStyle: const TextStyle(color: Colors.white70),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10),
@@ -407,6 +535,109 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
+  Widget _buildFiltersPanel() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white.withOpacity(0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            S.of(context).filters,
+            style:
+                FontStyles.heading(context, fontSize: 16, color: Colors.white),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            '${S.of(context).ageRangeLabel}: ${_ageRange.start.round()} - ${_ageRange.end.round()} ${S.of(context).years}',
+            style: const TextStyle(color: Colors.white70),
+          ),
+          RangeSlider(
+            values: _ageRange,
+            min: 18,
+            max: 65,
+            divisions: 47,
+            activeColor: Colors.white,
+            inactiveColor: Colors.white30,
+            onChanged: (values) {
+              setState(() => _ageRange = values);
+
+              _applyFiltersToResults();
+            },
+          ),
+          Row(
+            children: [
+              Text(S.of(context).genderLabel,
+                  style: const TextStyle(color: Colors.white70)),
+              const SizedBox(width: 12),
+              Expanded(
+                child: DropdownButton<String>(
+                  value: _selectedGender,
+                  dropdownColor: Colors.grey[800],
+                  style: const TextStyle(color: Colors.white),
+                  hint: Text(S.of(context).allGender,
+                      style: const TextStyle(color: Colors.white70)),
+                  items: [
+                    DropdownMenuItem(
+                        value: null, child: Text(S.of(context).allGender)),
+                    DropdownMenuItem(
+                        value: 'Male', child: Text(S.of(context).maleGender)),
+                    DropdownMenuItem(
+                        value: 'Female',
+                        child: Text(S.of(context).femaleGender)),
+                  ],
+                  onChanged: (value) {
+                    setState(() => _selectedGender = value);
+
+                    _applyFiltersToResults();
+                  },
+                ),
+              ),
+            ],
+          ),
+          if (_myLocation != null) ...[
+            Text(
+              '${S.of(context).maxDistanceLabel}: ${_maxDistance.round()} ${S.of(context).kilometers}',
+              style: const TextStyle(color: Colors.white70),
+            ),
+            Slider(
+              value: _maxDistance,
+              min: 1,
+              max: 100,
+              divisions: 99,
+              activeColor: Colors.white,
+              inactiveColor: Colors.white30,
+              onChanged: (value) {
+                setState(() => _maxDistance = value);
+
+                _applyFiltersToResults();
+              },
+            ),
+          ],
+          CheckboxListTile(
+            title: Text(S.of(context).onlyWithLocation,
+                style: const TextStyle(color: Colors.white70)),
+            value: _onlyWithLocation,
+            activeColor: Colors.white,
+            checkColor: Colors.black,
+            onChanged: (value) {
+              setState(() => _onlyWithLocation = value ?? false);
+
+              _applyFiltersToResults();
+            },
+            controlAffinity: ListTileControlAffinity.leading,
+            contentPadding: EdgeInsets.zero,
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildResultsArea() {
     if (_isLoading) {
       return const Center(child: CircularProgressIndicator());
@@ -424,7 +655,7 @@ class _HomeScreenState extends State<HomeScreen>
                 const Icon(Icons.search, size: 48, color: Colors.white70),
                 const SizedBox(height: 12),
                 Text(
-                  'Welcome! Use the search bar above to look for a skill or service.\n\nYou can also check your incoming requests to offer your help if needed.',
+                  S.of(context).welcomeMessage,
                   style: FontStyles.body(context, color: Colors.white),
                   textAlign: TextAlign.center,
                 ),
@@ -444,7 +675,7 @@ class _HomeScreenState extends State<HomeScreen>
                 size: 48, color: Colors.orangeAccent),
             const SizedBox(height: 12),
             Text(
-              'No matching users found for this skill.\nPlease try a different search keyword.',
+              S.of(context).noMatchingUsers,
               style: FontStyles.body(context, color: Colors.orangeAccent),
               textAlign: TextAlign.center,
             ),
@@ -457,44 +688,162 @@ class _HomeScreenState extends State<HomeScreen>
       padding: const EdgeInsets.symmetric(horizontal: 16),
       children: [
         if (_exchangeMatches.isNotEmpty) ...[
-          Text('Skill Exchange Available',
+          Text(S.of(context).skillExchangeAvailable,
               style: FontStyles.heading(context,
                   fontSize: 18, color: Colors.white)),
           const SizedBox(height: 8),
-          ..._exchangeMatches.map(_buildUserCard),
+          ..._exchangeMatches.map(_buildEnhancedUserCard),
           const SizedBox(height: 16),
         ],
         if (_paidMatches.isNotEmpty) ...[
-          Text('Requires Small Fee',
+          Text(S.of(context).requiresSmallFee,
               style: FontStyles.heading(context,
                   fontSize: 18, color: Colors.white)),
           const SizedBox(height: 8),
-          ..._paidMatches.map(_buildUserCard),
+          ..._paidMatches.map(_buildEnhancedUserCard),
         ],
       ],
     );
   }
 
-  Card _buildUserCard(Map<String, dynamic> user) => Card(
-        margin: const EdgeInsets.only(bottom: 12),
-        child: ListTile(
-          title: Text(user['name'] ?? 'Unknown',
-              style: FontStyles.body(context, color: Colors.black)),
-          subtitle: Text('Trust Score: ${user['trustScore'] ?? 'unavailable'}',
-              style: FontStyles.body(context, color: Colors.black54)),
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => BookingScreen(
-                  userId: user['id'],
-                  requestedSkill: _searchController.text.trim(),
+  Widget _buildEnhancedUserCard(Map<String, dynamic> user) {
+    final skills = List<String>.from(user['skills'] ?? []);
+    final distance = user['distance'];
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      elevation: 4,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                CircleAvatar(
+                  radius: 25,
+                  backgroundColor: Colors.teal,
+                  child: Text(
+                    (user['name'] ?? 'U')[0].toUpperCase(),
+                    style: const TextStyle(color: Colors.white, fontSize: 20),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        user['name'] ?? S.of(context).unknown,
+                        style: FontStyles.heading(context,
+                            fontSize: 16, color: Colors.black),
+                      ),
+                      Row(
+                        children: [
+                          if (user['age'] != null) ...[
+                            Icon(Icons.cake, size: 16, color: Colors.grey[600]),
+                            const SizedBox(width: 4),
+                            Text(
+                              '${user['age']} ${S.of(context).years}',
+                              style: TextStyle(
+                                  color: Colors.grey[600], fontSize: 12),
+                            ),
+                            const SizedBox(width: 12),
+                          ],
+                          if (user['gender'] != null) ...[
+                            Icon(
+                              user['gender'] == 'Male'
+                                  ? Icons.male
+                                  : Icons.female,
+                              size: 16,
+                              color: Colors.grey[600],
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              user['gender'] == 'Male'
+                                  ? S.of(context).maleGender
+                                  : S.of(context).femaleGender,
+                              style: TextStyle(
+                                  color: Colors.grey[600], fontSize: 12),
+                            ),
+                          ],
+                        ],
+                      ),
+                      if (distance != null)
+                        Row(
+                          children: [
+                            Icon(Icons.location_on,
+                                size: 16, color: Colors.grey[600]),
+                            const SizedBox(width: 4),
+                            Text(
+                              '${distance.toStringAsFixed(1)} ${S.of(context).kilometers}',
+                              style: TextStyle(
+                                  color: Colors.grey[600], fontSize: 12),
+                            ),
+                          ],
+                        ),
+                    ],
+                  ),
+                ),
+                Column(
+                  children: [
+                    Icon(Icons.star, color: Colors.amber, size: 16),
+                    Text(
+                      '${user['trustScore'] ?? S.of(context).unavailable}',
+                      style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            if (skills.isNotEmpty) ...[
+              Text(
+                S.of(context).skillsLabel,
+                style: FontStyles.body(context, color: Colors.grey[700]!),
+              ),
+              const SizedBox(height: 6),
+              Wrap(
+                spacing: 6,
+                runSpacing: 4,
+                children: skills
+                    .map((skill) => Chip(
+                          label:
+                              Text(skill, style: const TextStyle(fontSize: 12)),
+                          backgroundColor: Colors.teal.withOpacity(0.1),
+                          side: BorderSide(color: Colors.teal.withOpacity(0.3)),
+                        ))
+                    .toList(),
+              ),
+              const SizedBox(height: 8),
+            ],
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => BookingScreen(
+                        userId: user['id'],
+                        requestedSkill: _searchController.text.trim(),
+                      ),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.message),
+                label: Text(S.of(context).contact),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.teal,
+                  foregroundColor: Colors.white,
                 ),
               ),
-            );
-          },
+            ),
+          ],
         ),
-      );
+      ),
+    );
+  }
 
   Widget _buildSideMenuOverlay() => GestureDetector(
         onTap: () => setState(() => isMenuOpen = false),
@@ -531,7 +880,7 @@ class _HomeScreenState extends State<HomeScreen>
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        _userName ?? 'Loading...',
+                        _userName ?? S.of(context).loading,
                         style: FontStyles.heading(context,
                             fontSize: 20, color: Colors.teal),
                         overflow: TextOverflow.ellipsis,
@@ -541,23 +890,25 @@ class _HomeScreenState extends State<HomeScreen>
                 ),
                 const SizedBox(height: 20),
                 const Divider(),
-                _buildMenuItem(Icons.account_circle, 'Profile', () {
+                _buildMenuItem(Icons.account_circle, S.of(context).profile, () {
                   Navigator.push(context,
                       MaterialPageRoute(builder: (_) => const ProfileScreen()));
                 }, iconColor: Colors.deepPurple),
-                _buildMenuItem(Icons.support_agent, 'System Support', () {},
+                _buildMenuItem(
+                    Icons.support_agent, S.of(context).systemSupport, () {},
                     iconColor: Colors.indigo),
-                _buildMenuItem(Icons.description, 'Terms of App', () {},
+                _buildMenuItem(
+                    Icons.description, S.of(context).termsOfApp, () {},
                     iconColor: Colors.blue),
-                _buildMenuItem(Icons.settings, 'App Settings', () {},
+                _buildMenuItem(Icons.settings, S.of(context).appSettings, () {},
                     iconColor: Colors.orange),
                 const Divider(),
-                _buildMenuItem(Icons.logout, 'Log Out', () async {
+                _buildMenuItem(Icons.logout, S.of(context).logout, () async {
                   final confirmed = await showConfirmDialog(
                     context: context,
-                    title: 'Confirm Logout',
-                    message: 'Are you sure you want to log out?',
-                    confirmText: 'Logout',
+                    title: S.of(context).confirmLogout,
+                    message: S.of(context).logoutConfirmMessage,
+                    confirmText: S.of(context).logout,
                     confirmColor: Colors.redAccent,
                   );
                   if (confirmed == true) {

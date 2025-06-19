@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import '../global_constants.dart';
 import '../widgets/custom_elevated_button.dart';
+import '../generated/l10n.dart';
 import 'base_scaffold.dart';
 import 'font_styles.dart';
 
@@ -19,12 +21,6 @@ class _AddSkillScreenState extends State<AddSkillScreen> {
   final TextEditingController _customSkillController = TextEditingController();
   final Set<String> _selectedSkills = {};
 
-  final List<String> predefinedSkills = [
-    "Graphic Design", "Translation", "Programming", "Childcare", "Device Repair",
-    "Private Tutoring", "Photography", "Writing", "Video Editing", "Web Development",
-    "Marketing", "Cooking", "Gardening", "Painting", "Carpentry", "Sewing",
-    "Fitness Training", "Music Lessons", "Event Planning", "Accounting"
-  ];
 
   Future<void> _saveSkills() async {
     final customSkill = _customSkillController.text.trim();
@@ -33,7 +29,7 @@ class _AddSkillScreenState extends State<AddSkillScreen> {
     }
 
     if (_selectedSkills.isEmpty) {
-      _showSnackbar('Please select or enter at least one skill.', isError: true);
+      _showSnackbar(S.of(context).pleaseSelectSkills, isError: true);
       return;
     }
 
@@ -51,7 +47,7 @@ class _AddSkillScreenState extends State<AddSkillScreen> {
       );
 
       if (newSkills.isEmpty) {
-        _showSnackbar('No new skills to add.', isError: true);
+        _showSnackbar(S.of(context).noNewSkillsToAdd, isError: true);
         return;
       }
 
@@ -59,11 +55,11 @@ class _AddSkillScreenState extends State<AddSkillScreen> {
         'skills': FieldValue.arrayUnion(newSkills.toList()),
       });
 
-      _showSnackbar('Skills added successfully!');
+      _showSnackbar(S.of(context).skillsAddedSuccessfully);
       _customSkillController.clear();
       setState(() => _selectedSkills.clear());
     } catch (e) {
-      _showSnackbar('Error: $e', isError: true);
+      _showSnackbar(S.of(context).errorAddingSkills(e.toString()), isError: true);
     }
   }
 
@@ -82,13 +78,13 @@ class _AddSkillScreenState extends State<AddSkillScreen> {
   @override
   Widget build(BuildContext context) {
     return BaseScaffold(
-      title: 'Add Skills',
+      title: S.of(context).addSkills,
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Choose from suggested skills:',
+            Text(S.of(context).chooseSuggestedSkills,
                 style: FontStyles.heading(context, color: Colors.white, fontSize: 20)),
             const SizedBox(height: 12),
             Wrap(
@@ -122,14 +118,14 @@ class _AddSkillScreenState extends State<AddSkillScreen> {
               }).toList(),
             ),
             const SizedBox(height: 24),
-            Text('Or type your own skill:',
+            Text(S.of(context).typeCustomSkill,
                 style: FontStyles.heading(context, color: Colors.white, fontSize: 18)),
             const SizedBox(height: 8),
             TextField(
               controller: _customSkillController,
               style: FontStyles.body(context, color: Colors.white),
               decoration: InputDecoration(
-                hintText: 'Add Custom Skill',
+                hintText: S.of(context).addCustomSkill,
                 hintStyle: const TextStyle(color: Colors.white70),
                 filled: true,
                 fillColor: Colors.white12,
@@ -151,7 +147,7 @@ class _AddSkillScreenState extends State<AddSkillScreen> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Selected Skills:',
+                  Text(S.of(context).selectedSkills,
                       style: FontStyles.heading(context, fontSize: 18, color: Colors.white)),
                   const SizedBox(height: 12),
                   Wrap(
@@ -176,7 +172,7 @@ class _AddSkillScreenState extends State<AddSkillScreen> {
               width: double.infinity,
               child: CustomElevatedButton(
                 icon: Icons.save,
-                label: 'Save Skills',
+                label: S.of(context).saveSkills,
                 style: FontStyles.heading(context,
                     fontSize: 18, color: Colors.white),
                 onPressed: _saveSkills,

@@ -4,6 +4,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import '../screens/font_styles.dart';
 import 'custom_elevated_button.dart';
+import '../generated/l10n.dart';
 
 class MapPickerDialog extends StatefulWidget {
   const MapPickerDialog({super.key});
@@ -43,7 +44,7 @@ class _MapPickerDialogState extends State<MapPickerDialog> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              'Pick Location',
+              S.of(context).pickLocation,
               style: FontStyles.heading(context, fontSize: 22, color: Colors.black87),
             ),
             const SizedBox(height: 16),
@@ -66,13 +67,13 @@ class _MapPickerDialogState extends State<MapPickerDialog> {
               children: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: Text('Cancel',
+                  child: Text(S.of(context).cancel,
                       style: FontStyles.body(context, color: Colors.deepPurple)),
                 ),
                 CustomElevatedButton(
-                  label: 'Select',
-                  icon: Icons.check_circle_outline,
-                  onPressed: () => Navigator.pop(context, _picked),
+                    label: S.of(context).ok,
+                    icon: Icons.check_circle_outline,
+                    onPressed: () => Navigator.pop(context, _picked),
                     style: FontStyles.heading(context,
                         fontSize: 16, color: Colors.white)
                 )

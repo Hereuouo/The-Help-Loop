@@ -1,7 +1,7 @@
 class Skill {
   final String name;
   final String description;
-  final String level; // Beginner, Mid, Advanced
+  final String level;
   final String? id;
 
   Skill({
@@ -11,7 +11,7 @@ class Skill {
     this.id,
   });
 
-  // Convert Skill object to map for Firestore
+
   Map<String, dynamic> toMap() {
     return {
       'name': name,
@@ -20,7 +20,7 @@ class Skill {
     };
   }
 
-  // Convert Firestore document to Skill object
+
   factory Skill.fromMap(Map<String, dynamic> map, String id) {
     return Skill(
       name: map['name'],

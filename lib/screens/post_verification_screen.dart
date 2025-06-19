@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:thehelploop/services/user_service.dart';
+import 'package:the_help_loop_master/services/user_service.dart';
+import '../generated/l10n.dart';
 import 'base_scaffold.dart';
 import 'font_styles.dart';
 import 'home_screen.dart';
 import 'login_screen.dart';
+import '../global_constants.dart';
 
 class PostVerificationScreen extends StatefulWidget {
   const PostVerificationScreen({super.key});
@@ -14,29 +16,6 @@ class PostVerificationScreen extends StatefulWidget {
 }
 
 class _PostVerificationScreenState extends State<PostVerificationScreen> {
-  final List<String> predefinedSkills = [
-    "Graphic Design",
-    "Translation",
-    "Programming",
-    "Childcare",
-    "Device Repair",
-    "Private Tutoring",
-    "Photography",
-    "Writing",
-    "Video Editing",
-    "Web Development",
-    "Marketing",
-    "Cooking",
-    "Gardening",
-    "Painting",
-    "Carpentry",
-    "Sewing",
-    "Fitness Training",
-    "Music Lessons",
-    "Event Planning",
-    "Accounting",
-  ];
-
   final TextEditingController customSkillController = TextEditingController();
   final Set<String> selectedSkills = {};
   bool? isWillingToPay;
@@ -56,22 +35,21 @@ class _PostVerificationScreenState extends State<PostVerificationScreen> {
   Future<void> _submitData() async {
     if (isWillingToPay == null) {
       _showDialog(
-        title: "Selection Required",
-        message: "Please indicate if you are willing to pay a fee.",
+        title: S.of(context).selectionRequired,
+        message: S.of(context).pleaseIndicatePaymentWillingness,
       );
       return;
     }
 
     if (!isWillingToPay!) {
       _showDialog(
-        title: "Sorry",
-        message:
-            "Sorry, you won’t be able to use the app without agreeing to the terms. Thank you!",
+        title: S.of(context).sorry,
+        message: S.of(context).cannotUseAppWithoutAgreement,
         onClose: () {
           Navigator.pushAndRemoveUntil(
             context,
             MaterialPageRoute(builder: (_) => const LoginScreen()),
-            (route) => false,
+                (route) => false,
           );
         },
       );
@@ -92,12 +70,12 @@ class _PostVerificationScreenState extends State<PostVerificationScreen> {
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(builder: (_) => const HomeScreen()),
-        (route) => false,
+            (route) => false,
       );
     } catch (e) {
       _showDialog(
-        title: "Error",
-        message: "An error occurred while saving data. Please try again later.",
+        title: S.of(context).error,
+        message: S.of(context).errorSavingData,
       );
     }
   }
@@ -118,8 +96,8 @@ class _PostVerificationScreenState extends State<PostVerificationScreen> {
               Navigator.of(context).pop();
               if (onClose != null) onClose();
             },
-            child:
-                Text("OK", style: FontStyles.body(context, color: Colors.blue)),
+            child: Text(S.of(context).ok,
+                style: FontStyles.body(context, color: Colors.blue)),
           ),
         ],
       ),
@@ -135,7 +113,7 @@ class _PostVerificationScreenState extends State<PostVerificationScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              "Select Your Skills",
+              S.of(context).selectYourSkills,
               style: FontStyles.heading(context,
                   fontSize: 24, color: Colors.white),
             ),
@@ -161,7 +139,7 @@ class _PostVerificationScreenState extends State<PostVerificationScreen> {
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8)),
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   onSelected: (_) => _toggleSkill(skill),
                 );
               }).toList(),
@@ -171,17 +149,17 @@ class _PostVerificationScreenState extends State<PostVerificationScreen> {
               controller: customSkillController,
               style: const TextStyle(color: Colors.white),
               decoration: InputDecoration(
-                labelText: "Add a custom skill",
+                labelText: S.of(context).addCustomSkill,
                 labelStyle: const TextStyle(color: Colors.white70),
                 border:
-                    OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                 filled: true,
                 fillColor: Colors.white.withOpacity(0.1),
               ),
             ),
             const SizedBox(height: 32),
             Text(
-              "Are you willing to pay a small fee to receive services if you don’t have skills to exchange?",
+              S.of(context).paymentWillingnessQuestion,
               style: FontStyles.body(context, color: Colors.white),
             ),
             const SizedBox(height: 12),
@@ -190,7 +168,7 @@ class _PostVerificationScreenState extends State<PostVerificationScreen> {
               children: [
                 Flexible(
                   child: RadioListTile<bool>(
-                    title: Text("Yes",
+                    title: Text(S.of(context).yes,
                         style: FontStyles.body(context, color: Colors.white)),
                     value: true,
                     groupValue: isWillingToPay,
@@ -201,7 +179,7 @@ class _PostVerificationScreenState extends State<PostVerificationScreen> {
                 ),
                 Flexible(
                   child: RadioListTile<bool>(
-                    title: Text("No",
+                    title: Text(S.of(context).no,
                         style: FontStyles.body(context, color: Colors.white)),
                     value: false,
                     groupValue: isWillingToPay,
@@ -215,7 +193,7 @@ class _PostVerificationScreenState extends State<PostVerificationScreen> {
             const SizedBox(height: 24),
             ElevatedButton(
               onPressed: selectedSkills.isNotEmpty ||
-                      customSkillController.text.isNotEmpty
+                  customSkillController.text.isNotEmpty
                   ? _submitData
                   : null,
               style: ElevatedButton.styleFrom(
@@ -224,8 +202,8 @@ class _PostVerificationScreenState extends State<PostVerificationScreen> {
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12)),
               ),
-              child: const Text("Continue",
-                  style: TextStyle(fontSize: 18, color: Colors.white)),
+              child: Text(S.of(context).continueButton,
+                  style: const TextStyle(fontSize: 18, color: Colors.white)),
             ),
           ],
         ),

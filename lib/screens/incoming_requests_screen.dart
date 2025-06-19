@@ -3,12 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:thehelploop/screens/tracking_map_screen.dart';
+import 'package:the_help_loop_master/screens/tracking_map_screen.dart';
+import 'package:the_help_loop_master/generated/l10n.dart';
 import '../services/tracking_map_factory.dart';
 import '../widgets/confirm_dialog.dart';
 import '../widgets/custom_elevated_button.dart';
 import '../widgets/rating_dialog.dart';
 import 'base_scaffold.dart';
+import 'chat_screen.dart';
 import 'font_styles.dart';
 import 'dart:math' as math;
 import 'package:geocoding/geocoding.dart' as geo;
@@ -36,16 +38,56 @@ class _IncomingRequestsScreenState extends State<IncomingRequestsScreen>
   ];
   late TabController _tabController;
 
+  final Map<String, int> _unreadMessageCounts = {};
+
   @override
   void initState() {
     _tabController = TabController(length: _statuses.length, vsync: this);
     super.initState();
+    _listenToUnreadMessages();
+  }
+
+  void _listenToUnreadMessages() {
+    FirebaseFirestore.instance
+        .collection('bookings')
+        .where('toUserId', isEqualTo: currentUser!.uid)
+        .snapshots()
+        .listen((bookingsSnapshot) {
+      for (var bookingDoc in bookingsSnapshot.docs) {
+        _listenToBookingMessages(bookingDoc.id);
+      }
+    });
+  }
+
+  void _listenToBookingMessages(String bookingId) {
+    FirebaseFirestore.instance
+        .collection('chats')
+        .doc(bookingId)
+        .collection('messages')
+        .where('senderId', isNotEqualTo: currentUser!.uid)
+        .snapshots()
+        .listen((messagesSnapshot) {
+      int unreadCount = 0;
+      for (var messageDoc in messagesSnapshot.docs) {
+        final data = messageDoc.data();
+        final readBy = List<String>.from(data['readBy'] ?? []);
+        if (!readBy.contains(currentUser!.uid)) {
+          unreadCount++;
+        }
+      }
+
+      if (mounted) {
+        setState(() {
+          _unreadMessageCounts[bookingId] = unreadCount;
+        });
+      }
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return BaseScaffold(
-      title: 'Incoming Requests',
+      title: S.of(context).incomingRequests,
       child: DefaultTabController(
         length: _statuses.length,
         child: Column(
@@ -61,7 +103,9 @@ class _IncomingRequestsScreenState extends State<IncomingRequestsScreen>
               indicatorColor: Colors.white,
               tabs: _statuses.map((status) {
                 return Tab(
-                  text: status == 'All' ? 'All' : _prettyStatus(status),
+                  text: status == 'All'
+                      ? S.of(context).all
+                      : _prettyStatus(status),
                 );
               }).toList(),
             ),
@@ -83,15 +127,15 @@ class _IncomingRequestsScreenState extends State<IncomingRequestsScreen>
   String _prettyStatus(String status) {
     switch (status) {
       case 'pending':
-        return 'Pending';
+        return S.of(context).statusPending;
       case 'in_progress':
-        return 'In Progress';
+        return S.of(context).statusInProgress;
       case 'completed':
-        return 'Completed';
+        return S.of(context).statusCompleted;
       case 'rejected':
-        return 'Rejected';
+        return S.of(context).statusRejected;
       case 'payment_pending':
-        return 'Payment Pending';
+        return S.of(context).statusPaymentPending;
       default:
         return status;
     }
@@ -105,7 +149,7 @@ class _IncomingRequestsScreenState extends State<IncomingRequestsScreen>
           .snapshots(),
       builder: (context, snapshot) {
         if (!snapshot.hasData) {
-          return const Center(child: CircularProgressIndicator());
+          return Center(child: CircularProgressIndicator());
         }
 
         final bookings = snapshot.data!.docs.where((doc) {
@@ -114,7 +158,7 @@ class _IncomingRequestsScreenState extends State<IncomingRequestsScreen>
         }).toList();
 
         if (bookings.isEmpty) {
-          return const Center(child: Text('No incoming requests available.'));
+          return Center(child: Text(S.of(context).noIncomingRequests));
         }
 
         return ListView.builder(
@@ -135,7 +179,7 @@ class _IncomingRequestsScreenState extends State<IncomingRequestsScreen>
                 if (!userSnapshot.hasData) return const SizedBox();
                 final userData =
                     userSnapshot.data!.data() as Map<String, dynamic>?;
-                final name = userData?['name'] ?? 'Unknown';
+                final name = userData?['name'] ?? S.of(context).unknown;
                 final userSkills = userData?['skills'] ?? [];
 
                 return Card(
@@ -146,35 +190,39 @@ class _IncomingRequestsScreenState extends State<IncomingRequestsScreen>
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text("👤 From: $name",
+                        Text("👤 ${S.of(context).fromUser}: $name",
                             style: FontStyles.body(context,
                                 color: Colors.pinkAccent)),
-                        Text("🔧 Requested: ${booking['requestedSkill']}",
+                        Text(
+                            "🔧 ${S.of(context).requestedSkill}: ${booking['requestedSkill']}",
                             style: FontStyles.body(context,
                                 color: Colors.black,
                                 fontWeight: FontWeight.bold)),
-                        Text("📍 Address: ${booking['fromAddress']}",
+                        Text(
+                            "📍 ${S.of(context).address}: ${booking['fromAddress']}",
                             style:
                                 FontStyles.body(context, color: Colors.black)),
                         Text(
-                            "📅 Start: ${startDate.toLocal().toString().split(" ")[0]}",
+                            "📅 ${S.of(context).startDate}: ${startDate.toLocal().toString().split(" ")[0]}",
                             style:
                                 FontStyles.body(context, color: Colors.black)),
-                        Text("⌛ Duration: ${booking['duration']}",
+                        Text(
+                            "⌛ ${S.of(context).duration}: ${booking['duration']}",
                             style:
                                 FontStyles.body(context, color: Colors.black)),
-                        Text("📝 Notes: ${booking['notes'] ?? 'None'}",
+                        Text(
+                            "📝 ${S.of(context).notes}: ${booking['notes'] ?? S.of(context).none}",
                             style:
                                 FontStyles.body(context, color: Colors.black)),
                         if (booking['exchangeType'] == 'skill')
                           Text(
-                              "🔄 Exchanged Skill: ${booking['exchangedSkill']}",
+                              "🔄 ${S.of(context).exchangedSkill}: ${booking['exchangedSkill']}",
                               style: FontStyles.body(context,
                                   color: Colors.deepPurple,
                                   fontWeight: FontWeight.bold)),
                         if (booking['exchangeType'] == 'fee')
                           Text(
-                              "💰 Fee: ${booking['feeAmount']?.toStringAsFixed(2) ?? '0.00'}",
+                              "💰 ${S.of(context).fee}: ${booking['feeAmount']?.toStringAsFixed(2) ?? '0.00'}",
                               style: FontStyles.body(context,
                                   color: Colors.deepPurple,
                                   fontWeight: FontWeight.bold)),
@@ -184,15 +232,18 @@ class _IncomingRequestsScreenState extends State<IncomingRequestsScreen>
                           runSpacing: 8,
                           children: [
                             Chip(
-                                label: Text("Status: ${_prettyStatus(status)}",
+                                label: Text(
+                                    "${S.of(context).status}: ${_prettyStatus(status)}",
                                     style: FontStyles.body(context,
                                         color: Colors.black))),
+                            _buildChatIconWithBadge(
+                                booking.id, booking['fromUserId']),
                             if (status == 'pending') ...[
                               ElevatedButton(
                                 onPressed: () => _showAcceptanceOptionsDialog(
                                     booking, userSkills, name),
                                 child: Text(
-                                  'Accept',
+                                  S.of(context).accept,
                                   style: FontStyles.body(context,
                                       fontSize: 18,
                                       color: Colors.teal.shade900,
@@ -204,7 +255,7 @@ class _IncomingRequestsScreenState extends State<IncomingRequestsScreen>
                                     backgroundColor: Colors.red),
                                 onPressed: () =>
                                     _showRejectionDialog(booking.id),
-                                child: Text('Reject',
+                                child: Text(S.of(context).reject,
                                     style: FontStyles.body(context,
                                         fontSize: 18,
                                         color: Colors.white,
@@ -214,7 +265,7 @@ class _IncomingRequestsScreenState extends State<IncomingRequestsScreen>
                             if (status == 'in_progress') ...[
                               ElevatedButton.icon(
                                 icon: const Icon(Icons.map),
-                                label: Text('Track Trip',
+                                label: Text(S.of(context).trackTrip,
                                     style: FontStyles.body(context,
                                         color: Colors.black)),
                                 onPressed: () =>
@@ -223,7 +274,7 @@ class _IncomingRequestsScreenState extends State<IncomingRequestsScreen>
                               Center(
                                 child: CustomElevatedButton(
                                   icon: Icons.check_circle_outline,
-                                  label: 'Mark as Completed',
+                                  label: S.of(context).markAsCompleted,
                                   style: FontStyles.heading(context,
                                       fontSize: 16, color: Colors.white),
                                   onPressed: () {
@@ -231,8 +282,12 @@ class _IncomingRequestsScreenState extends State<IncomingRequestsScreen>
                                       ScaffoldMessenger.of(context)
                                           .showSnackBar(
                                         SnackBar(
-                                          content: Text(
-                                              'Cannot complete before ${endDate.toLocal().toString().split(" ")[0]}'),
+                                          content: Text(S
+                                              .of(context)
+                                              .cannotCompleteBefore(endDate
+                                                  .toLocal()
+                                                  .toString()
+                                                  .split(" ")[0])),
                                           backgroundColor: Colors.orange,
                                         ),
                                       );
@@ -257,26 +312,84 @@ class _IncomingRequestsScreenState extends State<IncomingRequestsScreen>
     );
   }
 
+  Widget _buildChatIconWithBadge(String bookingId, String fromUserId) {
+    final unreadCount = _unreadMessageCounts[bookingId] ?? 0;
+
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        IconButton(
+          icon: Icon(Icons.chat_bubble_outline, color: Colors.blue),
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => ChatScreen(
+                  bookingId: bookingId,
+                  toUserId:
+                      fromUserId == currentUser!.uid ? fromUserId : fromUserId,
+                ),
+              ),
+            );
+          },
+        ),
+        if (unreadCount > 0)
+          Positioned(
+            right: 8,
+            top: 8,
+            child: Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: Colors.red,
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.2),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              constraints: const BoxConstraints(
+                minWidth: 20,
+                minHeight: 20,
+              ),
+              child: Text(
+                unreadCount > 99 ? '99+' : '$unreadCount',
+                style: FontStyles.body(
+                  context,
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
   void _showAcceptanceOptionsDialog(
       DocumentSnapshot booking, List<dynamic> userSkills, String userName) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Choose Exchange Type',
+        title: Text(S.of(context).chooseExchangeType,
             style: FontStyles.heading(context, color: Colors.teal.shade900)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('You can choose how you want to be compensated:',
+            Text(S.of(context).chooseCompensationMessage,
                 style: FontStyles.body(context, color: Colors.black87)),
             const SizedBox(height: 16),
             ListTile(
               leading: const Icon(Icons.swap_horiz, color: Colors.deepPurple),
-              title: Text('Exchange Skills',
+              title: Text(S.of(context).exchangeSkills,
                   style: FontStyles.body(context,
                       fontWeight: FontWeight.bold, color: Colors.teal)),
-              subtitle: Text('Choose one of $userName\'s skills in exchange',
+              subtitle: Text(S.of(context).chooseUserSkillsExchange(userName),
                   style: FontStyles.body(context,
                       fontSize: 14, color: Colors.black)),
               onTap: () {
@@ -291,10 +404,10 @@ class _IncomingRequestsScreenState extends State<IncomingRequestsScreen>
             const SizedBox(height: 12),
             ListTile(
               leading: const Icon(Icons.attach_money, color: Colors.green),
-              title: Text('Request Fee',
+              title: Text(S.of(context).requestFee,
                   style: FontStyles.body(context,
                       fontWeight: FontWeight.bold, color: Colors.teal)),
-              subtitle: Text('Set a fee for your service',
+              subtitle: Text(S.of(context).setFeeForService,
                   style: FontStyles.body(context,
                       fontSize: 14, color: Colors.black)),
               onTap: () {
@@ -311,7 +424,7 @@ class _IncomingRequestsScreenState extends State<IncomingRequestsScreen>
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('Cancel',
+            child: Text(S.of(context).cancel,
                 style: FontStyles.body(context, color: Colors.red)),
           ),
         ],
@@ -327,19 +440,19 @@ class _IncomingRequestsScreenState extends State<IncomingRequestsScreen>
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setState) => AlertDialog(
-          title: Text('Select a Skill from $userName',
+          title: Text(S.of(context).selectSkillFromUser(userName),
               style: FontStyles.heading(context, color: Colors.teal.shade900)),
           content: SizedBox(
             width: double.maxFinite,
             child: userSkills.isEmpty
                 ? Center(
-                    child: Text('$userName has no registered skills.',
+                    child: Text(S.of(context).userHasNoSkills(userName),
                         style: FontStyles.body(context, color: Colors.red)))
                 : Column(
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Choose one skill you want in exchange:',
+                      Text(S.of(context).chooseSkillInExchange,
                           style:
                               FontStyles.body(context, color: Colors.black87)),
                       const SizedBox(height: 12),
@@ -371,7 +484,7 @@ class _IncomingRequestsScreenState extends State<IncomingRequestsScreen>
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: Text('Cancel',
+              child: Text(S.of(context).cancel,
                   style: FontStyles.body(context, color: Colors.red)),
             ),
             ElevatedButton(
@@ -382,7 +495,7 @@ class _IncomingRequestsScreenState extends State<IncomingRequestsScreen>
                         showDialog(
                           context: context,
                           barrierDismissible: false,
-                          builder: (loadingContext) => const Center(
+                          builder: (loadingContext) => Center(
                             child: CircularProgressIndicator(),
                           ),
                         );
@@ -399,14 +512,15 @@ class _IncomingRequestsScreenState extends State<IncomingRequestsScreen>
                         await _createReverseBooking(booking, selectedSkill!);
 
                         Navigator.of(context).pop();
-
                         Navigator.of(context).pop();
 
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: Text(
-                              'Booking accepted with skill exchange: $selectedSkill\n'
-                              'A reciprocal booking has been created.',
+                              S.of(context).bookingAcceptedWithSkillExchange(
+                                      selectedSkill!) +
+                                  '\n' +
+                                  S.of(context).reciprocalBookingCreated,
                             ),
                             backgroundColor: Colors.green,
                             duration: const Duration(seconds: 5),
@@ -418,7 +532,7 @@ class _IncomingRequestsScreenState extends State<IncomingRequestsScreen>
 
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
-                            content: Text('Error: $e'),
+                            content: Text('${S.of(context).error}: $e'),
                             backgroundColor: Colors.red,
                           ),
                         );
@@ -427,7 +541,7 @@ class _IncomingRequestsScreenState extends State<IncomingRequestsScreen>
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.teal.shade700,
               ),
-              child: Text('Confirm Exchange',
+              child: Text(S.of(context).confirmExchange,
                   style: FontStyles.body(context, color: Colors.white)),
             ),
           ],
@@ -442,7 +556,7 @@ class _IncomingRequestsScreenState extends State<IncomingRequestsScreen>
     final currentUser = FirebaseAuth.instance.currentUser;
 
     if (currentUser == null) {
-      throw Exception('User not logged in');
+      throw Exception(S.of(context).userNotLoggedIn);
     }
 
     final requesterDoc = await FirebaseFirestore.instance
@@ -451,13 +565,13 @@ class _IncomingRequestsScreenState extends State<IncomingRequestsScreen>
         .get();
 
     if (!requesterDoc.exists) {
-      throw Exception('Requester not found');
+      throw Exception(S.of(context).requesterNotFound);
     }
 
     final requesterData = requesterDoc.data() as Map<String, dynamic>;
     final requesterGeo = requesterData['location'] as GeoPoint?;
     if (requesterGeo == null) {
-      throw Exception('Requester location not available');
+      throw Exception(S.of(context).requesterLocationUnavailable);
     }
 
     final providerDoc = await FirebaseFirestore.instance
@@ -466,13 +580,13 @@ class _IncomingRequestsScreenState extends State<IncomingRequestsScreen>
         .get();
 
     if (!providerDoc.exists) {
-      throw Exception('Provider not found');
+      throw Exception(S.of(context).providerNotFound);
     }
 
     final providerData = providerDoc.data() as Map<String, dynamic>;
     final providerGeo = providerData['location'] as GeoPoint?;
     if (providerGeo == null) {
-      throw Exception('Provider location not available');
+      throw Exception(S.of(context).providerLocationUnavailable);
     }
 
     final distanceKm = _calculateDistance(
@@ -503,7 +617,7 @@ class _IncomingRequestsScreenState extends State<IncomingRequestsScreen>
       'requestedSkill': requestedSkill,
       'startDate': originalBooking['startDate'],
       'duration': originalBooking['duration'] ?? 'Day',
-      'notes': 'Skill exchange for booking ID: ${originalBooking.id}',
+      'notes': S.of(context).skillExchangeForBooking(originalBooking.id),
       'fromLocation': providerGeo,
       'fromAddress': providerAddress,
       'distanceKm': distanceKm,
@@ -543,13 +657,13 @@ class _IncomingRequestsScreenState extends State<IncomingRequestsScreen>
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Request Fee',
+        title: Text(S.of(context).requestFee,
             style: FontStyles.heading(context, color: Colors.teal.shade900)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Enter the amount you want for your service:',
+            Text(S.of(context).enterAmountForService,
                 style: FontStyles.body(context, color: Colors.black87)),
             const SizedBox(height: 16),
             TextField(
@@ -557,7 +671,7 @@ class _IncomingRequestsScreenState extends State<IncomingRequestsScreen>
               keyboardType: TextInputType.numberWithOptions(decimal: true),
               decoration: InputDecoration(
                 prefixIcon: const Icon(Icons.attach_money, color: Colors.green),
-                hintText: 'Enter amount',
+                hintText: S.of(context).enterAmount,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
@@ -568,7 +682,7 @@ class _IncomingRequestsScreenState extends State<IncomingRequestsScreen>
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('Cancel',
+            child: Text(S.of(context).cancel,
                 style: FontStyles.body(context, color: Colors.red)),
           ),
           ElevatedButton(
@@ -576,7 +690,7 @@ class _IncomingRequestsScreenState extends State<IncomingRequestsScreen>
               final feeText = feeController.text.trim();
               if (feeText.isEmpty) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Please enter a valid amount')),
+                  SnackBar(content: Text(S.of(context).enterValidAmount)),
                 );
                 return;
               }
@@ -584,7 +698,7 @@ class _IncomingRequestsScreenState extends State<IncomingRequestsScreen>
               double? fee = double.tryParse(feeText);
               if (fee == null || fee <= 0) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Please enter a valid amount')),
+                  SnackBar(content: Text(S.of(context).enterValidAmount)),
                 );
                 return;
               }
@@ -603,7 +717,7 @@ class _IncomingRequestsScreenState extends State<IncomingRequestsScreen>
 
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text('Fee request of $fee sent to requester'),
+                  content: Text(S.of(context).feeRequestSent(fee.toString())),
                   backgroundColor: Colors.blue,
                 ),
               );
@@ -611,7 +725,7 @@ class _IncomingRequestsScreenState extends State<IncomingRequestsScreen>
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.green,
             ),
-            child: Text('Send Fee Request',
+            child: Text(S.of(context).sendFeeRequest,
                 style: FontStyles.body(context, color: Colors.white)),
           ),
         ],
@@ -633,7 +747,7 @@ class _IncomingRequestsScreenState extends State<IncomingRequestsScreen>
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('Reason for Rejection',
+              Text(S.of(context).reasonForRejection,
                   style: FontStyles.heading(context,
                       fontSize: 22, color: Colors.black87)),
               const SizedBox(height: 12),
@@ -641,7 +755,7 @@ class _IncomingRequestsScreenState extends State<IncomingRequestsScreen>
                 controller: controller,
                 maxLines: 3,
                 decoration: InputDecoration(
-                  hintText: 'Enter reason...',
+                  hintText: S.of(context).enterReason,
                   hintStyle: FontStyles.body(context, color: Colors.black45),
                   border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12)),
@@ -653,7 +767,7 @@ class _IncomingRequestsScreenState extends State<IncomingRequestsScreen>
                 children: [
                   TextButton(
                     onPressed: () => Navigator.pop(context),
-                    child: Text('Cancel',
+                    child: Text(S.of(context).cancel,
                         style:
                             FontStyles.body(context, color: Colors.deepPurple)),
                   ),
@@ -675,10 +789,10 @@ class _IncomingRequestsScreenState extends State<IncomingRequestsScreen>
                       });
                       Navigator.pop(context);
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Booking rejected ❌')),
+                        SnackBar(content: Text(S.of(context).bookingRejected)),
                       );
                     },
-                    child: Text('Submit',
+                    child: Text(S.of(context).submit,
                         style: FontStyles.body(context, color: Colors.white)),
                   ),
                 ],
@@ -695,9 +809,9 @@ class _IncomingRequestsScreenState extends State<IncomingRequestsScreen>
     final fromUserId = booking['fromUserId'];
     final confirmed = await showConfirmDialog(
       context: context,
-      title: 'Confirm Completion',
-      message: 'Are you sure you want to mark this booking as completed?',
-      confirmText: 'Complete',
+      title: S.of(context).confirmCompletion,
+      message: S.of(context).confirmCompletionMessage,
+      confirmText: S.of(context).complete,
       confirmColor: Colors.green,
     );
 
@@ -714,7 +828,7 @@ class _IncomingRequestsScreenState extends State<IncomingRequestsScreen>
       );
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Booking marked as completed ✅')),
+        SnackBar(content: Text(S.of(context).bookingMarkedCompleted)),
       );
     }
   }
@@ -723,8 +837,8 @@ class _IncomingRequestsScreenState extends State<IncomingRequestsScreen>
     final doc =
         await FirebaseFirestore.instance.collection('users').doc(userId).get();
     if (!doc.exists || !doc.data()!.containsKey('location')) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text("No location available")));
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(S.of(context).noLocationAvailable)));
       return;
     }
 

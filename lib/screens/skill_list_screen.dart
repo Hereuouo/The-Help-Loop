@@ -42,10 +42,10 @@ class _SkillListScreenState extends State<SkillListScreen> {
 
       try {
         if (widget.skillToEdit == null) {
-          // Add new skill if no existing skill is being edited
+
           await FirestoreService().addSkill(skill);
         } else {
-          // Update the existing skill
+
           await FirestoreService().updateSkill(skill);
         }
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Skill saved successfully!')));

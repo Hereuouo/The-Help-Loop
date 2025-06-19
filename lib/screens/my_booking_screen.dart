@@ -1,13 +1,14 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:thehelploop/widgets/custom_elevated_button.dart';
+import 'package:the_help_loop_master/widgets/custom_elevated_button.dart';
 import '../services/tracking_map_factory.dart';
 import '../widgets/confirm_dialog.dart';
 import '../widgets/rating_dialog.dart';
+import '../generated/l10n.dart';
 import 'base_scaffold.dart';
+import 'chat_screen.dart';
 import 'font_styles.dart';
 import 'payment_requests_screen.dart';
 
@@ -23,20 +24,13 @@ class MyBookingsScreen extends StatefulWidget {
 
 class _MyBookingsScreenState extends State<MyBookingsScreen>
     with SingleTickerProviderStateMixin {
-  final Map<String, String?> _statuses = {
-    'All': null,
-    'Pending': 'pending',
-    'Payment Pending': 'payment_pending',
-    'In Progress': 'in_progress',
-    'Completed': 'completed',
-    'Rejected': 'rejected',
-  };
   late TabController _tabController;
+  late Map<String, String?> _statuses;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: _statuses.length, vsync: this);
+    _tabController = TabController(length: 6, vsync: this);
   }
 
   @override
@@ -47,8 +41,17 @@ class _MyBookingsScreenState extends State<MyBookingsScreen>
 
   @override
   Widget build(BuildContext context) {
+    _statuses = {
+      S.of(context).allBookings: null,
+      S.of(context).pendingBookings: 'pending',
+      S.of(context).paymentPendingBookings: 'payment_pending',
+      S.of(context).inProgressBookings: 'in_progress',
+      S.of(context).completedBookings: 'completed',
+      S.of(context).rejectedBookings: 'rejected',
+    };
+
     return BaseScaffold(
-      title: 'My Bookings',
+      title: S.of(context).myBookings,
       actions: [
         StreamBuilder<QuerySnapshot>(
           stream: FirebaseFirestore.instance
@@ -64,7 +67,7 @@ class _MyBookingsScreenState extends State<MyBookingsScreen>
                   label: Text(snapshot.data!.docs.length.toString()),
                   child: const Icon(Icons.payment, size: 28),
                 ),
-                tooltip: 'Payment Requests',
+                tooltip: S.of(context).paymentRequests,
                 onPressed: () {
                   Navigator.push(
                     context,
@@ -77,7 +80,7 @@ class _MyBookingsScreenState extends State<MyBookingsScreen>
             }
             return IconButton(
               icon: const Icon(Icons.payment_outlined),
-              tooltip: 'Payment Requests',
+              tooltip: S.of(context).paymentRequests,
               onPressed: () {
                 Navigator.push(
                   context,
@@ -161,7 +164,7 @@ class _MyBookingsTab extends StatelessWidget {
         if (bookings.isEmpty) {
           return Center(
               child: Text(
-            'No bookings available.',
+            S.of(context).noBookingsAvailable,
             style: FontStyles.body(context, color: Colors.white),
           ));
         }
@@ -194,6 +197,26 @@ class _MyBookingCard extends StatelessWidget {
     return reviewSnapshot.docs.isNotEmpty;
   }
 
+  Stream<int> _getUnreadMessagesCount(String bookingId, String currentUserId) {
+    return FirebaseFirestore.instance
+        .collection('chats')
+        .doc(bookingId)
+        .collection('messages')
+        .where('senderId', isNotEqualTo: currentUserId)
+        .snapshots()
+        .map((snapshot) {
+      int unreadCount = 0;
+      for (var doc in snapshot.docs) {
+        final data = doc.data();
+        final readBy = List<String>.from(data['readBy'] ?? []);
+        if (!readBy.contains(currentUserId)) {
+          unreadCount++;
+        }
+      }
+      return unreadCount;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final status = booking['status'].toString().toLowerCase();
@@ -209,23 +232,24 @@ class _MyBookingCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('📍 Location: ${booking['fromAddress']}',
+            Text('📍 ${S.of(context).location}: ${booking['fromAddress']}',
                 style: FontStyles.body(context,
                     color: Colors.pinkAccent, fontWeight: FontWeight.bold)),
-            Text('🧠 Skill: ${booking['requestedSkill']}',
+            Text('🧠 ${S.of(context).skill}: ${booking['requestedSkill']}',
                 style: FontStyles.body(context, color: Colors.black)),
             if (exchangeType == 'skill')
               Text(
-                  '🔄 Exchange: ${booking['exchangedSkill'] ?? 'Skill exchange'}',
+                  '🔄 ${S.of(context).exchange}: ${booking['exchangedSkill'] ?? S.of(context).skillExchange}',
                   style: FontStyles.body(context,
                       color: Colors.deepPurple, fontWeight: FontWeight.bold)),
             if (exchangeType == 'fee')
               Text(
-                  '💰 Fee: ${booking['feeAmount']?.toStringAsFixed(2) ?? '0.00'}',
+                  '💰 ${S.of(context).fee}: \$${booking['feeAmount']?.toStringAsFixed(2) ?? '0.00'}',
                   style: FontStyles.body(context,
                       color: Colors.deepPurple, fontWeight: FontWeight.bold)),
             if (paymentStatus != null)
-              Text('💳 Payment: ${_capitalize(paymentStatus)}',
+              Text(
+                  '💳 ${S.of(context).payment}: ${_getLocalizedPaymentStatus(context, paymentStatus)}',
                   style: FontStyles.body(context,
                       color: paymentStatus == 'completed'
                           ? Colors.green
@@ -238,28 +262,28 @@ class _MyBookingCard extends StatelessWidget {
                   .get(),
               builder: (context, userSnapshot) {
                 if (!userSnapshot.hasData) {
-                  return Text('👤 Loading provider name...',
+                  return Text('👤 ${S.of(context).loading}',
                       style: FontStyles.body(context, color: Colors.black));
                 }
                 final userData =
                     userSnapshot.data!.data() as Map<String, dynamic>?;
                 final providerName = userData != null
-                    ? userData['name'] ?? 'Unknown'
-                    : 'Unknown';
-                return Text('👤 Skill Provider: $providerName',
+                    ? userData['name'] ?? S.of(context).unknown
+                    : S.of(context).unknown;
+                return Text('👤 ${S.of(context).skillProvider}: $providerName',
                     style: FontStyles.body(context, color: Colors.black));
               },
             ),
             Text(
-                '📅 Requested on: ${booking['timestamp'].toDate().toString().split(" ")[0]}',
+                '📅 ${S.of(context).requestedOn}: ${booking['timestamp'].toDate().toString().split(" ")[0]}',
                 style: FontStyles.body(context, color: Colors.black)),
             Text(
-                '📅 Start Date: ${booking['startDate'].toDate().toString().split(" ")[0]}',
+                '📅 ${S.of(context).startDate}: ${booking['startDate'].toDate().toString().split(" ")[0]}',
                 style: FontStyles.body(context, color: Colors.black)),
-            Text('⌛ Duration: ${booking['duration']}',
+            Text('⌛ ${S.of(context).duration}: ${booking['duration']}',
                 style: FontStyles.body(context, color: Colors.black)),
             Text(
-                '📝 Notes: ${booking['notes']?.toString().isNotEmpty == true ? booking['notes'] : 'No notes'}',
+                '📝 ${S.of(context).notes}: ${booking['notes']?.toString().isNotEmpty == true ? booking['notes'] : S.of(context).noNotes}',
                 style: FontStyles.body(context, color: Colors.black)),
             const SizedBox(height: 10),
             Wrap(
@@ -267,12 +291,13 @@ class _MyBookingCard extends StatelessWidget {
               runSpacing: 8,
               children: [
                 Chip(
-                    label: Text('Status: ${_capitalize(status)}',
+                    label: Text(
+                        '${S.of(context).status}: ${_getLocalizedStatus(context, status)}',
                         style: FontStyles.body(context, color: Colors.black))),
                 if (status == 'payment_pending')
                   CustomElevatedButton(
                     icon: Icons.payment,
-                    label: 'View Payment Request',
+                    label: S.of(context).viewPaymentRequest,
                     style: FontStyles.heading(context,
                         fontSize: 16, color: Colors.white),
                     backgroundColor: Colors.amber.shade700,
@@ -285,10 +310,68 @@ class _MyBookingCard extends StatelessWidget {
                       );
                     },
                   ),
+                StreamBuilder<int>(
+                  stream: _getUnreadMessagesCount(booking.id, currentUser!.uid),
+                  builder: (context, snapshot) {
+                    final unreadCount = snapshot.data ?? 0;
+
+                    return Stack(
+                      children: [
+                        IconButton(
+                          icon: Icon(Icons.chat_bubble_outline,
+                              color: Colors.blue),
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => ChatScreen(
+                                  bookingId: booking.id,
+                                  toUserId:
+                                      booking['fromUserId'] == currentUser.uid
+                                          ? booking['toUserId']
+                                          : booking['fromUserId'],
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                        if (unreadCount > 0)
+                          Positioned(
+                            right: 8,
+                            top: 8,
+                            child: Container(
+                              padding: const EdgeInsets.all(2),
+                              decoration: BoxDecoration(
+                                color: Colors.red,
+                                borderRadius: BorderRadius.circular(10),
+                                border:
+                                    Border.all(color: Colors.white, width: 1),
+                              ),
+                              constraints: const BoxConstraints(
+                                minWidth: 16,
+                                minHeight: 16,
+                              ),
+                              child: Text(
+                                unreadCount > 99
+                                    ? '99+'
+                                    : unreadCount.toString(),
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          ),
+                      ],
+                    );
+                  },
+                ),
                 if (status == 'in_progress')
                   ElevatedButton.icon(
                     icon: const Icon(Icons.map),
-                    label: Text('Track',
+                    label: Text(S.of(context).track,
                         style: FontStyles.body(context, color: Colors.black)),
                     onPressed: () =>
                         _openTrackingMap(context, booking['toUserId']),
@@ -296,7 +379,7 @@ class _MyBookingCard extends StatelessWidget {
                 if (status == 'pending')
                   CustomElevatedButton(
                     icon: Icons.cancel_outlined,
-                    label: 'Cancel',
+                    label: S.of(context).cancelBooking,
                     style: FontStyles.heading(context,
                         fontSize: 16, color: Colors.white),
                     backgroundColor: Colors.red,
@@ -306,7 +389,7 @@ class _MyBookingCard extends StatelessWidget {
                   ),
                 if (status == 'completed')
                   FutureBuilder<bool>(
-                    future: _hasRated(context, booking.id, currentUser!.uid,
+                    future: _hasRated(context, booking.id, currentUser.uid,
                         booking['toUserId']),
                     builder: (context, snapshot) {
                       if (snapshot.connectionState == ConnectionState.waiting) {
@@ -316,7 +399,7 @@ class _MyBookingCard extends StatelessWidget {
                       if (hasRated) return const SizedBox.shrink();
                       return CustomElevatedButton(
                         icon: Icons.star,
-                        label: 'Rate the Service',
+                        label: S.of(context).rateTheService,
                         style: FontStyles.heading(context,
                             fontSize: 16, color: Colors.white),
                         backgroundColor: Colors.teal,
@@ -341,10 +424,10 @@ class _MyBookingCard extends StatelessWidget {
   void _confirmCancel(BuildContext context, String bookingId) async {
     final confirmed = await showConfirmDialog(
       context: context,
-      title: 'Cancel Booking',
-      message: 'Are you sure you want to cancel this booking?',
-      cancelText: 'Back',
-      confirmText: 'Cancel',
+      title: S.of(context).cancelBookingTitle,
+      message: S.of(context).cancelBookingMessage,
+      cancelText: S.of(context).back,
+      confirmText: S.of(context).cancelBooking,
       confirmColor: Colors.teal,
     );
 
@@ -358,7 +441,7 @@ class _MyBookingCard extends StatelessWidget {
       });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Booking cancelled',
+          content: Text(S.of(context).bookingCancelled,
               style: FontStyles.body(context, color: Colors.white)),
         ),
       );
@@ -371,7 +454,7 @@ class _MyBookingCard extends StatelessWidget {
     final geo = doc['location'] as GeoPoint?;
     if (geo == null) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('No location available',
+          content: Text(S.of(context).noLocationAvailableForTracking,
               style: FontStyles.body(context, color: Colors.white))));
       return;
     }
@@ -384,6 +467,35 @@ class _MyBookingCard extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  String _getLocalizedStatus(BuildContext context, String status) {
+    switch (status) {
+      case 'pending':
+        return S.of(context).statusPending;
+      case 'payment_pending':
+        return S.of(context).statusPaymentPending;
+      case 'in_progress':
+        return S.of(context).statusInProgress;
+      case 'completed':
+        return S.of(context).statusCompleted;
+      case 'rejected':
+        return S.of(context).statusRejected;
+      default:
+        return status;
+    }
+  }
+
+  String _getLocalizedPaymentStatus(
+      BuildContext context, String paymentStatus) {
+    switch (paymentStatus) {
+      case 'completed':
+        return S.of(context).statusCompleted;
+      case 'pending':
+        return S.of(context).statusPending;
+      default:
+        return paymentStatus;
+    }
   }
 
   Color _statusColor(String status) {
@@ -401,10 +513,5 @@ class _MyBookingCard extends StatelessWidget {
       default:
         return Colors.grey.shade200;
     }
-  }
-
-  String _capitalize(String value) {
-    if (value.isEmpty) return value;
-    return value[0].toUpperCase() + value.substring(1);
   }
 }
